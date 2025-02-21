@@ -113,7 +113,7 @@ const OrderDetailPage = () => {
         />
 
         <StatCard
-          name="Захиалгаас хойш өнгөрсөн өдөр:"
+          name="Өнгөрсөн өдөр:"
           icon={MapPin}
           value={<div>{getDaysSinceOrder(String(order.createdAt))} өдөр</div>}
           color="#EF4444"

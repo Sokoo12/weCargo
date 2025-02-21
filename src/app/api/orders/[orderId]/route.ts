@@ -3,13 +3,15 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET(
-  request: Request,
-  { params }: { params: { orderId: string } }
-) {
+type RouteParams = {
+  params: Promise<{ orderId: string }>;
+};
+
+export async function GET(request: Request, { params }: RouteParams) {
   try {
+    const orderId = (await params).orderId;
     const order = await prisma.order.findUnique({
-      where: { packageId: params.orderId },
+      where: { packageId: orderId },
       include: {
         statusHistory: true, // Include status history in the response
       },
@@ -35,13 +37,10 @@ export async function GET(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { orderId: string } }
-) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   // console.log("delete order id===>",params.orderId)
   try {
-    const { orderId } = params;
+    const orderId = (await params).orderId;
 
     // First, delete status history entries
     await prisma.statusHistory.deleteMany({
@@ -63,11 +62,9 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { orderId: string } }
-) {
+export async function PATCH(request: Request, { params }: RouteParams) {
   try {
+    const orderId = (await params).orderId;
     const body = await request.json();
     const {
       packageId,
@@ -87,7 +84,7 @@ export async function PATCH(
 
     // Fetch the current order with status history
     const currentOrder = await prisma.order.findUnique({
-      where: { packageId: params.orderId },
+      where: { packageId: orderId },
       include: {
         statusHistory: true, // Fetch all status history records
       },
@@ -125,7 +122,7 @@ export async function PATCH(
 
     // Update the order
     await prisma.order.update({
-      where: { packageId: params.orderId },
+      where: { packageId: orderId },
       data: {
         packageId,
         productId,
