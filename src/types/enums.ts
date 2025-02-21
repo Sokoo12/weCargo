@@ -1,0 +1,21 @@
+export enum OrderStatus {
+  PENDING = "PENDING",
+  IN_TRANSIT = "IN_TRANSIT",
+  CUSTOMS_HOLD = "CUSTOMS_HOLD",
+  OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum OrderSize {
+  LARGE = "LARGE",
+  MEDIUM = "MEDIUM",
+  SMALL = "SMALL",
+  UNDEFINED = "UNDEFINED",
+}
+
+export enum ROLES {
+  ADMIN = "ADMIN",
+  MODERATOR = "MODERATOR",
+  USER = "USER",
+}
