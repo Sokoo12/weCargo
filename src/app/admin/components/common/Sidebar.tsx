@@ -35,12 +35,12 @@ const SIDEBAR_ITEMS = [
   //   color: "#3B82F6",
   //   href: "/admin/analytics",
   // },
-  {
-    name: "Тохиргоо",
-    icon: Settings,
-    color: "#6EE7B7",
-    href: "/admin/settings",
-  },
+  // {
+  //   name: "Тохиргоо",
+  //   icon: Settings,
+  //   color: "#6EE7B7",
+  //   href: "/admin/settings",
+  // },
   // {
   //   name: "Гарах",
   //   icon: LogOut,

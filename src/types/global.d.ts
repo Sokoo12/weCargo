@@ -5,7 +5,6 @@ type StatusHistory = {
   orderId: string;
 };
 
-
 type Order = {
   id: string;
   packageId: string;
@@ -82,11 +81,23 @@ type MetricsResponse = {
   canceledOrders: number; // Number of canceled orders
 };
 
-type User = {
+type MongoUser = {
   id: string;
   email: string;
   username: string;
   firstName?: string;
   lastName?: string;
   role: string;
+};
+
+type ClerkUser = {
+  id: string;
+  imageUrl: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role?: string;
+  email: string;
+  createdAt: number;
+  lastActiveAt:number | null
 };

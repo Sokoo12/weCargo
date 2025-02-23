@@ -41,7 +41,7 @@ function Header() {
                 height={50}
                 alt="cargomn.mn"
               />
-              <h2 className="text-[39px] font-semibold text-primary">CARGOO</h2>
+              <h2 className="text-[39px] font-semibold text-primary">WECARGO</h2>
             </div>
           </Link>
         </ul>
