@@ -1,11 +1,30 @@
 "use client";
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Cell,
+} from "recharts";
 import { useEffect, useState } from "react";
 import { OrderStatus } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 
-const COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B","#42f50b"];
+const COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B", "#42f50b"];
+
+type DeliveryStatusData = {
+  name: string;
+  value: number;
+};
+
+type MetricsResponse = {
+  deliveryStatus: DeliveryStatusData[];
+};
 
 const SalesChannelChart = () => {
   const [salesChannelData, setSalesChannelData] = useState<DeliveryStatusData[]>([]);
@@ -14,20 +33,29 @@ const SalesChannelChart = () => {
     const fetchData = async () => {
       try {
         const response = await fetch("/api/orders/metrics");
-        const result:MetricsResponse = await response.json();
-        setSalesChannelData(result.deliveryStatus); // Use deliveryStatus data for the bar chart
+        const result: MetricsResponse = await response.json();
+
+        if (Array.isArray(result.deliveryStatus)) {
+          setSalesChannelData(result.deliveryStatus);
+        } else {
+          console.warn("deliveryStatus is missing or not an array", result);
+          setSalesChannelData([]);
+        }
       } catch (error) {
         console.error("Error fetching sales channel data:", error);
+        setSalesChannelData([]);
       }
     };
 
     fetchData();
   }, []);
 
-   const translatedData:DeliveryStatusData[] = salesChannelData.map((data) => ({
-	  name: translateStatus(data.name as OrderStatus),
-	  value: data.value,
-	}));
+  const translatedData: DeliveryStatusData[] = Array.isArray(salesChannelData)
+    ? salesChannelData.map((data) => ({
+        name: translateStatus(data.name as OrderStatus),
+        value: data.value,
+      }))
+    : [];
 
   return (
     <motion.div
@@ -53,7 +81,7 @@ const SalesChannelChart = () => {
             />
             <Legend />
             <Bar dataKey={"value"} fill='#8884d8'>
-              {salesChannelData.map((entry, index) => (
+              {translatedData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Bar>

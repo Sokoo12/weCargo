@@ -12,6 +12,16 @@ import { useEffect, useState } from "react";
 import { translateStatus } from "@/utils/translateStatus";
 import { OrderStatus } from "@/types/enums";
 
+// Sample type — update based on your actual API response
+type DeliveryStatusData = {
+  name: string;
+  value: number;
+};
+
+type MetricsResponse = {
+  deliveryStatus: DeliveryStatusData[];
+};
+
 const COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B"];
 
 const DeliveryStatusChart = () => {
@@ -22,19 +32,28 @@ const DeliveryStatusChart = () => {
       try {
         const response = await fetch("/api/orders/metrics");
         const result: MetricsResponse = await response.json();
-        setCategoryData(result.deliveryStatus);
+
+        if (Array.isArray(result.deliveryStatus)) {
+          setCategoryData(result.deliveryStatus);
+        } else {
+          console.warn("Unexpected deliveryStatus format:", result.deliveryStatus);
+          setCategoryData([]);
+        }
       } catch (error) {
         console.error("Error fetching delivery status data:", error);
+        setCategoryData([]);
       }
     };
 
     fetchData();
   }, []);
 
-  const translatedData:DeliveryStatusData[] = categoryData.map((data) => ({
-    name: translateStatus(data.name as OrderStatus),
-    value: data.value,
-  }));
+  const translatedData: DeliveryStatusData[] = Array.isArray(categoryData)
+    ? categoryData.map((data) => ({
+        name: translateStatus(data.name as OrderStatus),
+        value: data.value,
+      }))
+    : [];
 
   return (
     <motion.div
@@ -43,16 +62,14 @@ const DeliveryStatusChart = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <h2 className="text-lg font-medium mb-4 text-gray-100">
-        Хүргэлтийн төлөв
-      </h2>
+      <h2 className="text-lg font-medium mb-4 text-gray-100">Хүргэлтийн төлөв</h2>
       <div className="h-80">
-        <ResponsiveContainer width={"100%"} height={"100%"}>
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={translatedData}
-              cx={"50%"}
-              cy={"50%"}
+              cx="50%"
+              cy="50%"
               labelLine={false}
               outerRadius={80}
               fill="#8884d8"
@@ -61,7 +78,7 @@ const DeliveryStatusChart = () => {
                 `${name} ${(percent * 100).toFixed(0)}%`
               }
             >
-              {categoryData.map((entry, index) => (
+              {translatedData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[index % COLORS.length]}
