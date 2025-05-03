@@ -9,6 +9,7 @@ import {
   Lightbulb,
   PhoneCall,
   ScrollText,
+  User,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -41,6 +42,12 @@ function MobileNav() {
       href: "/contact",
       icon: <PhoneCall size={24} strokeWidth={1} />,
       label: "Холбоос",
+    },
+    {
+      href: "sign-in",
+      icon: <User
+       size={24} strokeWidth={1} />,
+      label: "Нэвтрэх",
     },
   ];
 

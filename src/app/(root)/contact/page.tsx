@@ -4,8 +4,7 @@ import ConstellationAnimation from "@/components/ConstellationAnimation";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
 const ContactPage = () => {
-  const mapSrc =
-    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d148820.0416417542!2d106.76474749999999!3d47.918002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5d96925be2b18aab%3A0x4a0b5f7e1a1a1a1a!2sUlaanbaatar%2C%20Mongolia!5e0!3m2!1sen!2smn!4v1698765432100!5m2!1sen!2smn";
+  const mapSrc ="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241.12514741139853!2d106.8686444690399!3d47.91435136462403!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5d96930049ef10cf%3A0x768e0acc9b2b0d2f!2sPencil%20house%20stationery!5e1!3m2!1sen!2smn!4v1746091745352!5m2!1sen!2smn";
 
   return (
     <div className="min-h-screen bg-white  py-[100px] sm:pt-[150px] ">
@@ -22,7 +21,7 @@ const ContactPage = () => {
             <Mail className="w-10 h-10 text-primary" />
             <div>
               <h2 className="text-xl font-semibold text-gray-700">Имэйл</h2>
-              <p className="text-gray-600">info@example.com</p>
+              <p className="text-gray-600">wecargo@gmail.com</p>
             </div>
           </div>
 
@@ -30,7 +29,7 @@ const ContactPage = () => {
             <Phone className="w-10 h-10 text-primary" />
             <div>
               <h2 className="text-xl font-semibold text-gray-700">Утас</h2>
-              <p className="text-gray-600">+976 1234 5678</p>
+              <p className="text-gray-600">+976 99021937</p>
             </div>
           </div>
 
@@ -46,7 +45,7 @@ const ContactPage = () => {
             <Clock className="w-10 h-10 text-primary" />
             <div>
               <h2 className="text-xl font-semibold text-gray-700">Ажлын цаг</h2>
-              <p className="text-gray-600">Даваа - Баасан: 09:00 - 18:00</p>
+              <p className="text-gray-600">Өдөр бүр: 09:00 - 20:00</p>
             </div>
           </div>
         </div>
