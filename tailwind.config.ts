@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+const { fontFamily } = require("tailwindcss/defaultTheme");
 
 export default {
     darkMode: ["class"],
@@ -16,7 +17,30 @@ export default {
   			primaryDark: '#2D3250',
   			secondary: '#FE0000',
   			secondaryDark: "#1D2635",
-  			darkBg: '#1D2635'
+  			darkBg: '#1D2635',
+  			border: "hsl(var(--border))",
+  			input: "hsl(var(--input))",
+  			ring: "hsl(var(--ring))",
+  			destructive: {
+  				DEFAULT: "hsl(var(--destructive))",
+  				foreground: "hsl(var(--destructive-foreground))",
+  			},
+  			muted: {
+  				DEFAULT: "hsl(var(--muted))",
+  				foreground: "hsl(var(--muted-foreground))",
+  			},
+  			accent: {
+  				DEFAULT: "hsl(var(--accent))",
+  				foreground: "hsl(var(--accent-foreground))",
+  			},
+  			popover: {
+  				DEFAULT: "hsl(var(--popover))",
+  				foreground: "hsl(var(--popover-foreground))",
+  			},
+  			card: {
+  				DEFAULT: "hsl(var(--card))",
+  				foreground: "hsl(var(--card-foreground))",
+  			},
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
@@ -39,12 +63,21 @@ export default {
   				to: {
   					height: '0'
   				}
-  			}
+  			},
+  			'progress-bar': {
+  				'0%': { transform: 'translateX(-100%)' },
+  				'50%': { transform: 'translateX(-10%)' },
+  				'100%': { transform: 'translateX(0%)' },
+  			},
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
-  		}
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'progress-bar': 'progress-bar 1s ease-in-out infinite',
+  		},
+  		fontFamily: {
+  			sans: ["var(--font-sans)", ...fontFamily.sans],
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate")],

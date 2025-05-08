@@ -1,4 +1,4 @@
-import { verify } from 'jsonwebtoken';
+import { verify, sign } from 'jsonwebtoken';
 
 interface TokenPayload {
   userId: string;
@@ -6,8 +6,6 @@ interface TokenPayload {
   role: string;
   name?: string;
   phoneNumber?: string;
-  iat?: number;
-  exp?: number;
 }
 
 /**
@@ -15,9 +13,9 @@ interface TokenPayload {
  * @param token JWT token to verify
  * @returns Decoded token payload or null if invalid
  */
-export async function verifyToken(token: string): Promise<TokenPayload | null> {
+export function verifyToken(token: string): TokenPayload | null {
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || "your-fallback-secret-key-for-development";
+    const JWT_SECRET = process.env.JWT_SECRET || "Key123!";
     const decoded = verify(token, JWT_SECRET) as any;
     
     // For backwards compatibility, map id to userId if needed
@@ -25,26 +23,13 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
       decoded.userId = decoded.id;
     }
     
-    // Ensure we have the required fields for authentication
-    if (!decoded.userId && !decoded.id) {
-      console.error('Token missing required userId/id field:', decoded);
-      return null;
-    }
-    
-    if (!decoded.email) {
-      console.error('Token missing required email field:', decoded);
-      return null;
-    }
-    
     // Return normalized payload
     return {
       userId: decoded.userId || decoded.id,
       email: decoded.email,
-      role: decoded.role || 'user',
+      role: decoded.role || 'USER',
       name: decoded.name,
-      phoneNumber: decoded.phoneNumber,
-      iat: decoded.iat,
-      exp: decoded.exp
+      phoneNumber: decoded.phoneNumber
     };
   } catch (error) {
     console.error('Token verification error:', error);
@@ -55,12 +40,17 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 /**
  * Generates a JWT token for a user
  * @param payload User data to encode in the token
- * @param expiresIn Token expiration time (default: '7d')
  * @returns JWT token
  */
-export function generateToken(payload: Omit<TokenPayload, 'iat' | 'exp'>, expiresIn: string = '7d'): string {
-  const jwt = require('jsonwebtoken');
-  const JWT_SECRET = process.env.JWT_SECRET || "your-fallback-secret-key-for-development";
+export function generateToken(payload: TokenPayload): string {
+  const JWT_SECRET = process.env.JWT_SECRET || "Key123!";
   
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return sign(
+    {
+      ...payload,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
+    }, 
+    JWT_SECRET
+  );
 } 

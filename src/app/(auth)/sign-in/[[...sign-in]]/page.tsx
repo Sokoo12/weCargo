@@ -14,35 +14,29 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { useUserAuth } from "@/context/UserAuthContext";
-import { checkBrowserCookiesEnabled } from "@/utils/cookieCheck";
 
 export default function SignInPage() {
   const router = useRouter();
   const { login, isAuthenticated } = useUserAuth();
   const [formData, setFormData] = useState({
     phoneNumber: '',
+    password: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [cookieWarning, setCookieWarning] = useState(false);
 
-  // Check if cookies are enabled when component mounts
+  // Clean up any existing tokens when sign-in page loads
   useEffect(() => {
-    const checkCookies = async () => {
-      const cookiesEnabled = await checkBrowserCookiesEnabled();
-      setCookieWarning(!cookiesEnabled);
-    };
-    checkCookies();
-    
-    // Add debugging
-    console.log("Sign-in page - Auth state:", { 
-      isAuthenticated, 
-      comingFrom: document.referrer 
-    });
-    
-    // If user is already authenticated, redirect to home
+    if (typeof window !== 'undefined') {
+      // Clear any existing tokens to avoid conflicts
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("userData");
+    }
+  }, []);
+
+  // If user is already authenticated, redirect to home
+  useEffect(() => {
     if (isAuthenticated) {
-      console.log("User already authenticated, redirecting to home");
       router.push('/');
     }
   }, [isAuthenticated, router]);
@@ -53,9 +47,15 @@ export default function SignInPage() {
     setIsLoading(true);
 
     try {
-      // Validate phone number
+      // Validate phone number and password
       if (!formData.phoneNumber) {
         setError('Phone number is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.password) {
+        setError('Password is required');
         setIsLoading(false);
         return;
       }
@@ -70,14 +70,14 @@ export default function SignInPage() {
       const data = await response.json();
       
       if (response.ok) {
-        // Login using the context
-        login(data.token, data.user, data.usingCookies);
+        // Login using the simplified context
+        login(data.token, data.user);
         
         // Redirect to the dashboard
         router.push('/');
       } else {
         // Error handling
-        setError(data.error || 'Invalid phone number');
+        setError(data.error || 'Invalid phone number or password');
       }
     } catch (err) {
       console.error('Sign-in error:', err);
@@ -109,18 +109,11 @@ export default function SignInPage() {
               Өөрийн бүртгэлээр нэвтэрнэ үү
             </CardTitle>
             <CardDescription className="text-gray-400 text-center">
-              Утасны дугаараараа нэвтэрнэ үү
+              Утасны дугаар болон нууц үгээрээ нэвтэрнэ үү
             </CardDescription>
           </CardHeader>
           
           <CardContent>
-            {cookieWarning && (
-              <div className="text-amber-600 text-sm text-center bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-center mb-4">
-                <span className="mr-2">⚠️</span>
-                Cookies are disabled in your browser. You can still sign in, but for enhanced security, consider enabling cookies.
-              </div>
-            )}
-            
             <form className="space-y-6" onSubmit={handleSubmit}>
               {error && (
                 <div className="text-red-500 text-sm text-center bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-center">
@@ -144,6 +137,23 @@ export default function SignInPage() {
                   />
                   <div className="absolute text-white outline-none flex items-center justify-center left-2 h-[34px] w-[34px] top-2 bg-primary rounded-full">
                     <span>📱</span>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Нууц үг"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="bg-gray-100 font-medium rounded-full h-[50px] text-gray-700 placeholder-gray-400 border-gray-300 outline-primary pl-12"
+                    required
+                    disabled={isLoading}
+                  />
+                  <div className="absolute text-white outline-none flex items-center justify-center left-2 h-[34px] w-[34px] top-2 bg-primary rounded-full">
+                    <span>🔒</span>
                   </div>
                 </div>
               </div>

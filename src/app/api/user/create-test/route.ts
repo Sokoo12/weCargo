@@ -12,16 +12,23 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Get phone number from request or use a default
+    // Get data from request
     let phoneNumber = "123456789";
+    let password = "test123";
+    let email = "test@example.com";
+    let name = "Test User";
     
     try {
       const body = await req.json();
-      if (body && body.phoneNumber) {
-        phoneNumber = body.phoneNumber;
+      if (body) {
+        if (body.phoneNumber) phoneNumber = body.phoneNumber;
+        if (body.password) password = body.password;
+        if (body.email) email = body.email;
+        if (body.name) name = body.name;
       }
     } catch (error) {
-      // Use default phone number if parsing fails
+      // Use default values if parsing fails
+      console.log("Using default test user values");
     }
     
     // Check if user already exists
@@ -38,18 +45,22 @@ export async function POST(req: NextRequest) {
           email: existingUser.email,
           phoneNumber: existingUser.phoneNumber,
           role: existingUser.role
+        },
+        loginInfo: {
+          phoneNumber: existingUser.phoneNumber,
+          password: "test123 (default password, unless you specified a different one when creating)"
         }
       });
     }
     
     // Generate a password hash
-    const passwordHash = await hash("test123", 12);
+    const passwordHash = await hash(password, 12);
     
     // Create a test user
     const user = await db.user.create({
       data: {
-        name: "Test User",
-        email: "test@example.com",
+        name,
+        email,
         phoneNumber,
         role: "USER",
         passwordHash
@@ -64,6 +75,10 @@ export async function POST(req: NextRequest) {
         email: user.email,
         phoneNumber: user.phoneNumber,
         role: user.role
+      },
+      loginInfo: {
+        phoneNumber: user.phoneNumber,
+        password: password
       }
     });
   } catch (error) {
