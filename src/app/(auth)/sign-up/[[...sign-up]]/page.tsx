@@ -17,9 +17,31 @@ import {
 } from "@/components/ui/card";
 import { Mail, Lock, User, Phone, CheckCircle, AlertCircle } from "lucide-react"; // Added Phone icon
 
+type FormData = {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  confirmPassword: string;
+};
+
+type FormErrors = FormData & {
+  terms: string;
+  form: string;
+};
+
+type TouchedFields = {
+  name: boolean;
+  email: boolean;
+  phoneNumber: boolean;
+  password: boolean;
+  confirmPassword: boolean;
+  terms: boolean;
+};
+
 export default function SignUpPage() {
   const router = useRouter()
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     phoneNumber: '',
@@ -27,7 +49,7 @@ export default function SignUpPage() {
     confirmPassword: '',
   })
   
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<FormErrors>({
     name: '',
     email: '',
     phoneNumber: '',
@@ -38,7 +60,7 @@ export default function SignUpPage() {
   })
   
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [touched, setTouched] = useState({
+  const [touched, setTouched] = useState<TouchedFields>({
     name: false,
     email: false,
     phoneNumber: false,
@@ -48,58 +70,58 @@ export default function SignUpPage() {
   })
 
   // Validate individual field
-  const validateField = (name, value) => {
+  const validateField = (name: string, value: string | boolean): string => {
     let error = '';
     
     switch (name) {
       case 'name':
-        if (!value.trim()) {
+        if (typeof value === 'string' && !value.trim()) {
           error = 'Нэрээ оруулна уу';
-        } else if (value.trim().length < 2) {
+        } else if (typeof value === 'string' && value.trim().length < 2) {
           error = 'Нэр хэт богино байна';
         }
         break;
         
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value.trim()) {
+        if (typeof value === 'string' && !value.trim()) {
           error = 'Имэйл хаягаа оруулна уу';
-        } else if (!emailRegex.test(value)) {
+        } else if (typeof value === 'string' && !emailRegex.test(value)) {
           error = 'Зөв имэйл хаяг оруулна уу';
         }
         break;
         
       case 'phoneNumber':
         const phoneRegex = /^[0-9]{8}$/;
-        if (!value.trim()) {
+        if (typeof value === 'string' && !value.trim()) {
           error = 'Утасны дугаараа оруулна уу';
-        } else if (!phoneRegex.test(value)) {
+        } else if (typeof value === 'string' && !phoneRegex.test(value)) {
           error = 'Зөв утасны дугаар оруулна уу (8 орон)';
         }
         break;
         
       case 'password':
-        if (!value) {
+        if (typeof value === 'string' && !value) {
           error = 'Нууц үгээ оруулна уу';
-        } else if (value.length < 8) {
+        } else if (typeof value === 'string' && value.length < 8) {
           error = 'Нууц үг хамгийн багадаа 8 тэмдэгт байх ёстой';
-        } else if (!/[A-Z]/.test(value)) {
+        } else if (typeof value === 'string' && !/[A-Z]/.test(value)) {
           error = 'Нууц үг томоор эхлэх ёстой';
-        } else if (!/[0-9]/.test(value)) {
+        } else if (typeof value === 'string' && !/[0-9]/.test(value)) {
           error = 'Нууц үг тоо агуулсан байх ёстой';
         }
         break;
         
       case 'confirmPassword':
-        if (!value) {
+        if (typeof value === 'string' && !value) {
           error = 'Нууц үгээ давтаж оруулна уу';
-        } else if (value !== formData.password) {
+        } else if (typeof value === 'string' && value !== formData.password) {
           error = 'Нууц үг таарахгүй байна';
         }
         break;
         
       case 'terms':
-        if (!value) {
+        if (typeof value === 'boolean' && !value) {
           error = 'Үйлчилгээний нөхцөлийг зөвшөөрнө үү';
         }
         break;
@@ -112,7 +134,7 @@ export default function SignUpPage() {
   };
 
   // Handle input change
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     
     if (type === 'checkbox') {
@@ -127,14 +149,14 @@ export default function SignUpPage() {
       setFormData({...formData, [name]: value});
       
       // Only validate if the field has been touched before
-      if (touched[name]) {
+      if (touched[name as keyof TouchedFields]) {
         setErrors({...errors, [name]: validateField(name, value), form: ''});
       }
     }
   };
 
   // Handle blur event to validate field
-  const handleBlur = (e) => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setTouched({...touched, [name]: true});
     
@@ -173,7 +195,7 @@ export default function SignUpPage() {
     return !Object.values(newErrors).some(error => error);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate all fields
@@ -185,29 +207,25 @@ export default function SignUpPage() {
     }
 
     try {
-      // TODO: Implement your registration logic here
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     name: formData.name,
-      //     email: formData.email,
-      //     phoneNumber: formData.phoneNumber,
-      //     password: formData.password,
-      //   }),
-      // });
+      const response = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        }),
+      });
       
-      // if (response.ok) {
-      //   router.push('/dashboard');
-      // } else {
-      //   const data = await response.json();
-      //   setErrors({...errors, form: data.message || 'Бүртгэл амжилтгүй боллоо'});
-      // }
+      const data = await response.json();
       
-      console.log('Sign up attempt:', formData);
-      // For demo purposes, let's simulate a successful signup
-      // router.push('/dashboard');
-      
+      if (response.ok) {
+        router.push('/sign-in');
+      } else {
+        setErrors({...errors, form: data.error || 'Бүртгэл амжилтгүй боллоо'});
+      }
     } catch (err) {
       setErrors({...errors, form: 'Алдаа гарлаа. Дахин оролдоно уу.'});
     }
@@ -230,8 +248,10 @@ export default function SignUpPage() {
                   src="/logo.png" 
                   alt="Logo" 
                   width={64} 
-                  height={64} 
-                  className="object-cover"
+                  height={64}
+                  priority={true}
+                  style={{ height: 'auto' }}
+                  className="object-contain"
                 />
               </div>
             </div>
@@ -239,9 +259,7 @@ export default function SignUpPage() {
               Шинэ бүртгэл үүсгэх
             </CardTitle>
             <CardDescription className="text-gray-400 text-center">
-              <Link href="/sign-in" className="font-medium text-primary hover:text-primary/70">
-                Бүртгэлтэй бол нэвтрэх
-              </Link>
+          
             </CardDescription>
           </CardHeader>
           
@@ -483,22 +501,14 @@ export default function SignUpPage() {
 
               <div className="relative flex py-3 items-center">
                 <div className="flex-grow border-t border-gray-300"></div>
-                <span className="flex-shrink mx-4 text-gray-400 text-sm">Эсвэл</span>
+                <span className="flex-shrink mx-4 text-gray-400 text-sm">Бүртгэлтэй бол</span>
                 <div className="flex-grow border-t border-gray-300"></div>
               </div>
 
               <div className="flex justify-center items-center w-full space-x-2">
-                <button
-                  type="button"
-                  className="w-full flex justify-center items-center bg-white border border-gray-300 rounded-full py-2 px-3 h-[50px] hover:bg-gray-50 transition-colors"
-                >
-                  <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A10.014 10.014 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z"
-                    />
-                  </svg>
-                  <span className="ml-2 text-gray-600 text-sm font-medium">Google</span>
-                </button>
+              <Link href="/sign-in" className="font-medium text-primary hover:text-primary/70 text-2xl">
+                Нэвтрэх
+              </Link>
 
              
               </div>

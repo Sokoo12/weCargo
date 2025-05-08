@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
   const [touched, setTouched] = useState(false);
 
   // Validate email function
-  const validateEmail = (email) => {
+  const validateEmail = (email: string): string => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
       return 'Имэйл хаягаа оруулна уу';
@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
   };
 
   // Handle input change
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
     if (touched) {
       setError(validateEmail(e.target.value));
@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
   };
 
   // Handle form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate email
@@ -67,30 +67,21 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      // TODO: Implement your password reset logic here
-      // const response = await fetch('/api/auth/forgot-password', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email }),
-      // });
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
       
-      // if (response.ok) {
-      //   setIsSubmitted(true);
-      // } else {
-      //   const data = await response.json();
-      //   setError(data.message || 'Хүсэлт амжилтгүй боллоо');
-      // }
-      
-      console.log('Password reset request for:', email);
-      
-      // For demo purposes, simulate success after 1.5 seconds
-      setTimeout(() => {
+      if (response.ok) {
         setIsSubmitted(true);
-        setIsLoading(false);
-      }, 1500);
-      
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Хүсэлт амжилтгүй боллоо');
+      }
     } catch (err) {
       setError('Алдаа гарлаа. Дахин оролдоно уу.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -112,8 +103,10 @@ export default function ForgotPasswordPage() {
                   src="/logo.png" 
                   alt="Logo" 
                   width={64} 
-                  height={64} 
-                  className="object-cover"
+                  height={64}
+                  priority={true}
+                  style={{ height: 'auto' }}
+                  className="object-contain"
                 />
               </div>
             </div>

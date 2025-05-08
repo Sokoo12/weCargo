@@ -1,80 +1,106 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { OrderSize, OrderStatus } from "@/types/enums";
+import { db, prisma } from "@/lib/db";
+import { OrderStatus } from "@prisma/client";
+import { OrderStatus as AppOrderStatus } from "@/types/enums";
 
-const prisma = new PrismaClient();
+// Map application enum values to Prisma enum values
+const mapStatusToPrisma = (status: AppOrderStatus | string): OrderStatus => {
+  // Both enums have matching values but TypeScript needs explicit mapping
+  // Also handle PENDING for backward compatibility
+  if (status === 'PENDING') {
+    return 'IN_WAREHOUSE' as OrderStatus;
+  }
+
+  switch(status as AppOrderStatus) {
+    case AppOrderStatus.IN_WAREHOUSE:
+      return 'IN_WAREHOUSE' as OrderStatus;
+    case AppOrderStatus.IN_TRANSIT:
+      return 'IN_TRANSIT' as OrderStatus;
+    case AppOrderStatus.IN_UB:
+      return 'IN_UB' as OrderStatus;
+    case AppOrderStatus.OUT_FOR_DELIVERY:
+      return 'OUT_FOR_DELIVERY' as OrderStatus;
+    case AppOrderStatus.DELIVERED:
+      return 'DELIVERED' as OrderStatus;
+    case AppOrderStatus.CANCELLED:
+      return 'CANCELLED' as OrderStatus;
+    default:
+      return 'IN_WAREHOUSE' as OrderStatus;
+  }
+};
 
 export async function POST(request: Request) {
   try {
-    const body: OrderBody = await request.json();
+    const body = await request.json();
 
-    console.log(body);
     const {
+      orderId,
       packageId,
-      productId,
       phoneNumber,
-      size,
+      isShipped,
+      isDamaged,
+      damageDescription,
       status,
-      note,
-      isBroken,
-      deliveryAddress,
-      deliveryCost,
-      isPaid,
+      orderDetails,
       createdAt,
-    }: OrderBody = body;
+    } = body;
+
+    // Validate status to ensure it's a valid OrderStatus enum value
+    const validStatus = Object.values(AppOrderStatus).includes(status as AppOrderStatus) 
+      ? status as AppOrderStatus 
+      : AppOrderStatus.IN_WAREHOUSE; // Default to IN_WAREHOUSE if invalid
 
     // Create a new order with initial status history
-    const newOrder = await prisma.order.create({
-      data: {
-        packageId,
-        productId,
-        phoneNumber,
-        size,
-        status,
-        note,
-        isBroken: isBroken ?? false, // Ensure default value
-        deliveryAddress,
-        deliveryCost,
-        isPaid,
-        createdAt: createdAt,
-        statusHistory: {
-          create: {
-            status,
-            timestamp: new Date(),
-          },
+    const orderData: any = {
+      orderId,
+      packageId,
+      phoneNumber,
+      isShipped: isShipped ?? false,
+      isDamaged: isDamaged ?? false,
+      damageDescription: isDamaged ? damageDescription : undefined,
+      createdAt: createdAt || new Date(),
+      status: mapStatusToPrisma(validStatus), // Set the status field directly
+      statusHistory: {
+        create: {
+          status: mapStatusToPrisma(validStatus),
+          timestamp: new Date(),
         },
       },
+    };
+
+    // Only create order details if isShipped is true and orderDetails is provided
+    if (isShipped && orderDetails) {
+      Object.assign(orderData, {
+        orderDetails: {
+          create: {
+            totalQuantity: orderDetails.totalQuantity,
+            shippedQuantity: orderDetails.shippedQuantity,
+            largeItemQuantity: orderDetails.largeItemQuantity,
+            smallItemQuantity: orderDetails.smallItemQuantity,
+            priceRMB: orderDetails.priceRMB,
+            priceTonggur: orderDetails.priceTonggur,
+            deliveryAvailable: orderDetails.deliveryAvailable,
+            comments: orderDetails.comments,
+          }
+        }
+      });
+    }
+
+    // Create the order
+    const newOrder = await db.order.create({
+      data: orderData,
       include: {
-        statusHistory: true, // Include status history in response
+        statusHistory: true,
+        orderDetails: true,
       },
     });
 
-    const response: Order = {
-      id: newOrder.id,
-      packageId: newOrder.packageId,
-      productId: newOrder.productId,
-      phoneNumber: newOrder.phoneNumber,
-      size: newOrder.size as OrderSize,
-      status: newOrder.status as OrderStatus,
-      statusHistory: newOrder.statusHistory.map((history) => ({
-        id: history.id,
-        status: history.status as OrderStatus,
-        timestamp: history.timestamp,
-        orderId: history.orderId,
-      })),
-      createdAt: newOrder.createdAt,
-      note: newOrder.note,
-      isBroken: newOrder.isBroken,
-      deliveryAddress: newOrder.deliveryAddress,
-      deliveryCost: newOrder.deliveryCost,
-      isPaid: newOrder.isPaid,
-    };
-
-    return NextResponse.json(response, { status: 201 });
+    // Just return the newly created order
+    return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
     console.error("Failed to create order:", error);
     return NextResponse.json(
-      { error: "Failed to create order" },
+      { error: "Failed to create order", details: String(error) },
       { status: 500 }
     );
   }
@@ -82,39 +108,41 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const orders = await prisma.order.findMany({
+    // Fetch all orders with status history
+    const orders = await db.order.findMany({
       include: {
-        statusHistory: true, // Include status history in response
+        statusHistory: true,
+        orderDetails: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       },
     });
 
-    const response: Order[] = orders.map((order) => ({
-      id: order.id,
-      packageId: order.packageId,
-      productId: order.productId,
-      phoneNumber: order.phoneNumber,
-      size: order.size as OrderSize,
-      status: order.status as OrderStatus,
-      statusHistory: order.statusHistory.map((history) => ({
-        id: history.id,
-        status: history.status as OrderStatus,
-        timestamp: history.timestamp,
-        orderId: history.orderId,
-      })),
-      createdAt: order.createdAt,
-      note: order.note,
-      isBroken: order.isBroken,
-      deliveryAddress: order.deliveryAddress,
-      deliveryCost: order.deliveryCost,
-      isPaid: order.isPaid,
+    // Map any invalid status values to IN_WAREHOUSE for client-side safety
+    const sanitizedOrders = orders.map(order => ({
+      ...order,
+      // Handle status conversion safely
+      status: !order.status ? 
+        mapStatusToPrisma(AppOrderStatus.IN_WAREHOUSE) :
+        (Object.values(AppOrderStatus).includes(order.status as any) 
+          ? order.status 
+          : mapStatusToPrisma(AppOrderStatus.IN_WAREHOUSE)),
+      statusHistory: order.statusHistory.map(history => ({
+        ...history,
+        // Handle status history conversion safely
+        status: Object.values(AppOrderStatus).includes(history.status as any)
+          ? history.status
+          : mapStatusToPrisma(AppOrderStatus.IN_WAREHOUSE)
+      }))
     }));
 
-    return NextResponse.json(response);
+    return NextResponse.json(sanitizedOrders);
   } catch (error) {
     console.error("Failed to fetch orders:", error);
     return NextResponse.json(
-      { error: "Failed to fetch orders" },
+      { error: "Failed to fetch orders", details: String(error) },
       { status: 500 }
     );
   }
-}
+} 

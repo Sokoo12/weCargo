@@ -1,11 +1,9 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { motion } from "framer-motion";
-import ConstellationAnimation from "@/components/ConstellationAnimation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,49 +13,83 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Mail, Lock, User } from "lucide-react"; // Import necessary icons
+import { useUserAuth } from "@/context/UserAuthContext";
+import { checkBrowserCookiesEnabled } from "@/utils/cookieCheck";
 
 export default function SignInPage() {
-  const router = useRouter()
+  const router = useRouter();
+  const { login, isAuthenticated } = useUserAuth();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
-  const [error, setError] = useState('')
+    phoneNumber: '',
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [cookieWarning, setCookieWarning] = useState(false);
+
+  // Check if cookies are enabled when component mounts
+  useEffect(() => {
+    const checkCookies = async () => {
+      const cookiesEnabled = await checkBrowserCookiesEnabled();
+      setCookieWarning(!cookiesEnabled);
+    };
+    checkCookies();
+    
+    // Add debugging
+    console.log("Sign-in page - Auth state:", { 
+      isAuthenticated, 
+      comingFrom: document.referrer 
+    });
+    
+    // If user is already authenticated, redirect to home
+    if (isAuthenticated) {
+      console.log("User already authenticated, redirecting to home");
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
     try {
-      // TODO: Implement your authentication logic here
-      // const response = await fetch('/api/auth/signin', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // })
+      // Validate phone number
+      if (!formData.phoneNumber) {
+        setError('Phone number is required');
+        setIsLoading(false);
+        return;
+      }
+
+      // Use relative URL for same-origin requests to avoid CORS issues
+      const response = await fetch('/api/auth/sign-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
       
-      // if (response.ok) {
-      //   router.push('/dashboard')
-      // } else {
-      //   setError('Invalid email or password')
-      // }
+      const data = await response.json();
       
-      console.log('Sign in attempt:', formData)
+      if (response.ok) {
+        // Login using the context
+        login(data.token, data.user, data.usingCookies);
+        
+        // Redirect to the dashboard
+        router.push('/');
+      } else {
+        // Error handling
+        setError(data.error || 'Invalid phone number');
+      }
     } catch (err) {
-      setError('An error occurred. Please try again.')
+      console.error('Sign-in error:', err);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <ConstellationAnimation />
-      <motion.div
-        className="w-full max-w-md z-10 mb-[100px] sm:mb-0 mt-[120px]"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="w-full max-w-md z-10 mb-[100px] sm:mb-0 mt-[120px]">
         <Card className="bg-white/50 border-primary/20 border-[8px] backdrop-blur-sm shadow-none">
           <CardHeader>
             <div className="flex justify-center mb-4">
@@ -67,7 +99,9 @@ export default function SignInPage() {
                   alt="Logo" 
                   width={64} 
                   height={64} 
-                  className="object-cover"
+                  priority={true}
+                  style={{ height: 'auto' }}
+                  className="object-contain"
                 />
               </div>
             </div>
@@ -75,109 +109,78 @@ export default function SignInPage() {
               Өөрийн бүртгэлээр нэвтэрнэ үү
             </CardTitle>
             <CardDescription className="text-gray-400 text-center">
-              <Link href="/sign-up" className="font-medium text-primary hover:text-primary/70">
-                Шинэ аккаунт үүсгэх
-              </Link>
+              Утасны дугаараараа нэвтэрнэ үү
             </CardDescription>
           </CardHeader>
           
           <CardContent>
+            {cookieWarning && (
+              <div className="text-amber-600 text-sm text-center bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-center mb-4">
+                <span className="mr-2">⚠️</span>
+                Cookies are disabled in your browser. You can still sign in, but for enhanced security, consider enabling cookies.
+              </div>
+            )}
+            
             <form className="space-y-6" onSubmit={handleSubmit}>
               {error && (
-                <motion.div
-                  className="text-red-400 text-sm text-center bg-red-50 border border-red-200 rounded-lg p-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
+                <div className="text-red-500 text-sm text-center bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-center">
+                  <span className="mr-2">⚠️</span>
                   {error}
-                </motion.div>
+                </div>
               )}
               
               <div className="space-y-4">
                 <div className="relative">
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Email хаяг"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    placeholder="Утасны дугаар"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     className="bg-gray-100 font-medium rounded-full h-[50px] text-gray-700 placeholder-gray-400 border-gray-300 outline-primary pl-12"
                     required
+                    disabled={isLoading}
                   />
                   <div className="absolute text-white outline-none flex items-center justify-center left-2 h-[34px] w-[34px] top-2 bg-primary rounded-full">
-                    <Mail size={18} />
+                    <span>📱</span>
                   </div>
-                </div>
-
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Нууц үг"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="bg-gray-100 font-medium rounded-full h-[50px] text-gray-700 placeholder-gray-400 border-gray-300 outline-primary pl-12"
-                    required
-                  />
-                  <div className="absolute text-white outline-none flex items-center justify-center left-2 h-[34px] w-[34px] top-2 bg-primary rounded-full">
-                    <Lock size={18} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-gray-600">
-                    Намайг сана
-                  </label>
-                </div>
-
-                <div>
-                  <Link href="/forgot-password" className="font-medium text-primary hover:text-primary/70">
-                    Нууц үг мартсан?
-                  </Link>
                 </div>
               </div>
 
               <Button
                 type="submit"
                 className="w-full text-white h-[50px] rounded-full"
+                disabled={isLoading}
               >
-                Нэвтрэх
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Нэвтрэх...
+                  </>
+                ) : (
+                  'Нэвтрэх'
+                )}
               </Button>
 
               <div className="relative flex py-3 items-center">
                 <div className="flex-grow border-t border-gray-300"></div>
-                <span className="flex-shrink mx-4 text-gray-400 text-sm">Эсвэл</span>
+                <span className="flex-shrink mx-4 text-gray-400 text-sm">Бүртгэлгүй бол</span>
                 <div className="flex-grow border-t border-gray-300"></div>
               </div>
 
               <div className="items-center justify-center w-full flex ">  
-                <button
-                  type="button"
-                  className="flex justify-center items-center bg-white border border-gray-300 rounded-full py-2 px-3 h-[50px] hover:bg-gray-50 transition-colors w-full"
-                >
-                  <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A10.014 10.014 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z"
-                    />
-                  </svg>
-                  <span className="ml-2 text-gray-600 text-sm font-medium">Google</span>
-                </button>
-
+              <Link href="/sign-up" className="font-medium text-primary hover:text-primary/70 text-2xl">
+                Бүртгүүлэх
+              </Link>
               </div>
             </form>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
-  )
+  );
 }
