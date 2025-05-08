@@ -8,6 +8,8 @@ import PackageDeleteModal from "./PackageDeleteModal";
 import { OrderStatus } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 import StatusChangeModal from "./StatusChangeModal";
+import OrderDetailsModal from "./OrderDetailsModal";
+import StatusHistoryModal from "./StatusHistoryModal";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -20,23 +22,42 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import OrderFilters from "@/components/OrderFilters";
 import { formatISO } from "date-fns";
+import { Order, OrderDetails } from "@/types/order";
+import { Info, FileText, Clock } from "lucide-react";
+
+// Add custom window interface for hasLoggedOrders
+declare global {
+  interface Window {
+    hasLoggedOrders?: boolean;
+  }
+}
 
 const fetchOrders = async () => {
-  const response = await fetch("/api/orders");
-  if (!response.ok) {
-    throw new Error("Failed to fetch orders");
+  try {
+    console.log("Fetching orders from /api/orders");
+    const response = await fetch("/api/orders");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Failed to fetch orders:", response.status, errorData);
+      throw new Error(`Failed to fetch orders: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log("Orders received:", data.length, "First order status:", data[0]?.status);
+    return data;
+  } catch (error) {
+    console.error("Error in fetchOrders:", error);
+    throw error;
   }
-  return response.json();
 };
 
 const getStatusColor = (status: OrderStatus) => {
   switch (status) {
-    case OrderStatus.PENDING:
+    case OrderStatus.IN_WAREHOUSE:
       return "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30";
     case OrderStatus.IN_TRANSIT:
       return "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30";
-    case OrderStatus.CUSTOMS_HOLD:
-      return "bg-red-500/20 text-red-400 hover:bg-red-500/30";
+    case OrderStatus.IN_UB:
+      return "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30";
     case OrderStatus.OUT_FOR_DELIVERY:
       return "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30";
     case OrderStatus.DELIVERED:
@@ -52,7 +73,9 @@ const PackagesList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filterPackageId, setFilterPackageId] = useState("");
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [filterOrderId, setFilterOrderId] = useState("");
   const [filterStatus, setFilterStatus] = useState<OrderStatus | null>(null);
   const [filterStartDate, setFilterStartDate] = useState<Date | undefined>(undefined);
   const [filterEndDate, setFilterEndDate] = useState<Date | undefined>(undefined);
@@ -67,15 +90,29 @@ const PackagesList = () => {
   });
 
   const filteredOrders = orders.filter((order: Order) => {
+    // Log the first few orders to debug status
+    if (orders.length > 0 && !window.hasLoggedOrders) {
+      console.log("First order:", orders[0]);
+      console.log("Order status types:", orders.slice(0, 3).map((o: Order) => 
+        `${o.orderId}: status=${o.status}, statusHistory=${JSON.stringify(o.statusHistory)}`
+      ));
+      window.hasLoggedOrders = true;
+    }
+
     const matchesSearch = 
-      order.packageId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.productId.toLowerCase().includes(searchTerm.toLowerCase());
+      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.packageId?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesPackageId = filterPackageId ? 
-      order.packageId.toLowerCase().includes(filterPackageId.toLowerCase()) : 
+    const matchesOrderId = filterOrderId ? 
+      order.orderId?.toLowerCase().includes(filterOrderId.toLowerCase()) : 
       true;
     
-    const matchesStatus = filterStatus === null ? true : order.status === filterStatus;
+    // Check status from direct status field, then fallback to history
+    const currentStatus = order.status || 
+      (order.statusHistory?.length > 0 && order.statusHistory[order.statusHistory.length - 1].status);
+    
+    const matchesStatus = filterStatus === null ? true : 
+      currentStatus === filterStatus;
     
     let matchesDateRange = true;
     if (filterStartDate) {
@@ -87,12 +124,22 @@ const PackagesList = () => {
       matchesDateRange = matchesDateRange && new Date(order.createdAt) < endDatePlusOne;
     }
 
-    return matchesSearch && matchesPackageId && matchesStatus && matchesDateRange;
+    return matchesSearch && matchesOrderId && matchesStatus && matchesDateRange;
   });
 
   const handleStatusClick = (order: Order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
+  };
+
+  const handleDetailsClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleHistoryClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsHistoryModalOpen(true);
   };
 
   const handleFilterChange = (filters: { 
@@ -101,10 +148,22 @@ const PackagesList = () => {
     startDate: Date | undefined;
     endDate: Date | undefined;
   }) => {
-    setFilterPackageId(filters.packageId);
+    setFilterOrderId(filters.packageId);
     setFilterStatus(filters.status);
     setFilterStartDate(filters.startDate);
     setFilterEndDate(filters.endDate);
+  };
+
+  const getCurrentStatus = (order: Order): OrderStatus => {
+    // First try to get status from the status field
+    if (order.status) {
+      return order.status;
+    }
+    // Fallback to status history
+    if (order.statusHistory?.length > 0) {
+      return order.statusHistory[order.statusHistory.length - 1].status;
+    }
+    return OrderStatus.IN_WAREHOUSE;
   };
 
   if (isLoading) {
@@ -129,7 +188,7 @@ const PackagesList = () => {
       transition={{ delay: 0.4 }}
     >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-100">Захиалгууд</h2>
+        <h2 className="text-xl font-semibold text-gray-100">Ачаанууд</h2>
         <div className="flex items-center gap-3">
           <OrderFilters onFilter={handleFilterChange} />
           <div className="relative">
@@ -149,9 +208,12 @@ const PackagesList = () => {
         <table className="w-full">
           <thead>
             <tr className="text-left text-gray-400 border-b border-gray-700">
-              <th className="pb-3">Захиалгын дугаар</th>
-              <th className="pb-3">Бүтээгдэхүүний дугаар</th>
+              <th className="pb-3">Захиалгын дугаарi</th>
+              <th className="pb-3">Ачааны дугаар(Track Number)</th>
+              <th className="pb-3">Утасны дугаар</th>
               <th className="pb-3">Төлөв</th>
+              <th className="pb-3">Ачигдсан эсэх</th>
+              <th className="pb-3">Эвдрэлтэй эсэх</th>
               <th className="pb-3">Огноо</th>
               <th className="pb-3">Үйлдэл</th>
             </tr>
@@ -160,28 +222,67 @@ const PackagesList = () => {
             {filteredOrders.map((order: Order) => (
               <tr key={order.id} className="border-b border-gray-700">
                 <td className="py-4">
-                  <Link href={`/admin/packages/${order.packageId}`}>
+                  <Link href={`/admin/packages/${order.orderId}`}>
                     <span className="text-blue-400 hover:underline">
-                      {order.packageId}
+                      {order.orderId}
                     </span>
                   </Link>
                 </td>
-                <td className="py-4 text-gray-300">{order.productId}</td>
+                <td className="py-4">
+                  <span className="text-gray-300">
+                    {order.packageId}
+                  </span>
+                </td>
+                <td className="py-4">
+                  <span className="text-gray-300">
+                    {order.phoneNumber || 'N/A'}
+                  </span>
+                </td>
+                <td className="py-4">
+                  <span 
+                    className={`rounded-full px-3 py-1 text-xs ${getStatusColor(getCurrentStatus(order))} cursor-pointer`}
+                    onClick={() => handleStatusClick(order)}
+                  >
+                    {translateStatus(getCurrentStatus(order))}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleHistoryClick(order);
+                      }}
+                      className="ml-2 text-gray-500 hover:text-gray-300"
+                      title="Төлөвийн түүх харах"
+                    >
+                      <Clock size={14} />
+                    </button>
+                  </span>
+                </td>
+                <td className="py-4">
+                  <span className={order.isShipped ? "text-green-400" : "text-yellow-400"}>
+                    {order.isShipped ? "Тийм" : "Үгүй"}
+                    {order.isShipped && order.orderDetails && (
+                      <button
+                        onClick={() => handleDetailsClick(order)}
+                        className="ml-2 text-blue-400 hover:text-blue-300"
+                        title="Дэлгэрэнгүй мэдээлэл харах"
+                      >
+                        <FileText size={16} />
+                      </button>
+                    )}
+                  </span>
+                </td>
                 <td className="py-4">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className={`text-sm ${getStatusColor(order.status)}`}
-                          onClick={() => handleStatusClick(order)}
-                        >
-                          {translateStatus(order.status)}
-                        </Button>
+                        <span className={order.isDamaged ? "text-red-400 cursor-help" : "text-gray-400"}>
+                          {order.isDamaged ? "Тийм" : "Үгүй"}
+                        </span>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Төлөв өөрчлөх</p>
-                      </TooltipContent>
+                      {order.isDamaged && order.damageDescription && (
+                        <TooltipContent>
+                          <p>{order.damageDescription}</p>
+                        </TooltipContent>
+                      )}
                     </Tooltip>
                   </TooltipProvider>
                 </td>
@@ -204,8 +305,26 @@ const PackagesList = () => {
         <StatusChangeModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          currentStatus={selectedOrder.status}
+          currentStatus={getCurrentStatus(selectedOrder)}
           orderId={selectedOrder.id}
+        />
+      )}
+
+      {selectedOrder && (
+        <OrderDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          orderDetails={selectedOrder.orderDetails || null}
+          packageId={selectedOrder.packageId}
+        />
+      )}
+
+      {selectedOrder && (
+        <StatusHistoryModal
+          isOpen={isHistoryModalOpen}
+          onClose={() => setIsHistoryModalOpen(false)}
+          statusHistory={selectedOrder.statusHistory || []}
+          packageId={selectedOrder.packageId}
         />
       )}
     </motion.div>

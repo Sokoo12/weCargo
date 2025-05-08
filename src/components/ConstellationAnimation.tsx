@@ -18,9 +18,15 @@ const generateStars = () => {
 };
 
 const ConstellationAnimation = () => {
-  const [stars, setStars] = useState(generateStars());
+  // Start with an empty array to avoid hydration mismatch
+  const [stars, setStars] = useState([]);
+  const [isClient, setIsClient] = useState(false);
 
+  // Initialize stars only on the client side
   useEffect(() => {
+    setIsClient(true);
+    setStars(generateStars());
+    
     const interval = setInterval(() => {
       setStars((prevStars) =>
         prevStars.map((star) => ({
@@ -55,6 +61,11 @@ const ConstellationAnimation = () => {
       clearInterval(fadeInterval);
     };
   }, []);
+
+  // Only render content on the client to avoid hydration mismatch
+  if (!isClient) {
+    return <div className="absolute inset-0 overflow-hidden"></div>;
+  }
 
   return (
     <div className="absolute inset-0 overflow-hidden">

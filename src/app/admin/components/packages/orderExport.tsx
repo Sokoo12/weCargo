@@ -13,6 +13,36 @@ import { Download, Calendar as CalendarIcon } from "lucide-react";
 import * as XLSX from "xlsx";
 import { translateStatus } from "@/utils/translateStatus";
 import translatePackageSize from "@/utils/translatePackageSize";
+import { OrderStatus, OrderSize } from "@/types/enums";
+
+// Define order details interface
+interface OrderDetails {
+  totalQuantity?: number;
+  shippedQuantity?: number;
+  largeItemQuantity?: number;
+  smallItemQuantity?: number;
+  priceRMB?: number;
+  priceTonggur?: number;
+  deliveryAvailable?: boolean;
+  comments?: string;
+}
+
+// Extend the global Order type
+interface ExportOrder {
+  id: string;
+  packageId: string;
+  phoneNumber?: string;
+  size?: string;
+  status?: string;
+  statusHistory?: any[];
+  createdAt: Date | string;
+  note?: string;
+  isBroken?: boolean;
+  deliveryAddress?: string;
+  deliveryCost?: number;
+  isPaid?: boolean;
+  orderDetails?: OrderDetails | null;
+}
 
 const OrderExport = () => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -32,34 +62,60 @@ const OrderExport = () => {
       const formattedStartDate = startDate.toISOString();
       const formattedEndDate = endDate.toISOString();
 
+      console.log(`Exporting orders from ${formattedStartDate} to ${formattedEndDate}`);
+
       // Fetch orders within the date range
       const response = await fetch(
         `/api/orders/export?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch orders");
+        const errorData = await response.json();
+        console.error("API error:", errorData);
+        throw new Error(`Failed to fetch orders: ${response.status} ${response.statusText}`);
       }
 
       const orders = await response.json();
+      console.log(`Received ${orders.length} orders from API`);
+      
+      if (!orders || orders.length === 0) {
+        alert("No orders found for the selected date range");
+        setIsLoading(false);
+        return;
+      }
 
       // Prepare data for Excel export
       const workbook = XLSX.utils.book_new();
       
       // Transform orders for more readable Excel format
-      const exportData = orders.map((order: Order) => ({
-        "Захиалгын дугаар": order.packageId,
-        "Бүтээгдэхүүний дугаар": order.productId,
-        "Утасны дугаар": order.phoneNumber || "N/A",
-        "Хэмжээ": translatePackageSize(order.size),
-        "Төлөв": translateStatus(order.status),
-        "Үүсгэсэн огноо": new Date(order.createdAt).toLocaleDateString(),
-        "Хүргэлтийн хаяг": order.deliveryAddress || "N/A",
-        "Хүргэлтийн үнэ": order.deliveryCost || 0,
-        "Төлбөр төлөгдсөн": order.isPaid ? "Тийм" : "Үгүй",
-        "Эвдрэлтэй": order.isBroken ? "Тийм" : "Үгүй",
-        "Тэмдэглэл": order.note || "",
-      }));
+      const exportData = orders.map((order: ExportOrder) => {
+        console.log("Processing order:", order.packageId);
+        
+        // Use optional chaining and nullish coalescing for safety
+        return {
+          "Барааны дугаар": order.packageId || "N/A",
+          "Утасны дугаар": order.phoneNumber || "N/A",
+          "Хэмжээ": order.size ? translatePackageSize(order.size as OrderSize) : "Тодорхойгүй",
+          "Төлөв": order.status ? translateStatus(order.status as OrderStatus) : "Тодорхойгүй",
+          "Үүсгэсэн огноо": order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A",
+          "Хүргэлтийн хаяг": order.deliveryAddress || "N/A",
+          "Хүргэлтийн үнэ": order.deliveryCost || 0,
+          "Төлбөр төлөгдсөн": order.isPaid ? "Тийм" : "Үгүй",
+          "Эвдрэлтэй": order.isBroken ? "Тийм" : "Үгүй",
+          "Тэмдэглэл": order.note || "",
+          // Add order details if available
+          "Нийт тоо": order.orderDetails?.totalQuantity || "",
+          "Ачигдсан тоо": order.orderDetails?.shippedQuantity || "",
+          "Том бараа": order.orderDetails?.largeItemQuantity || "",
+          "Жижиг бараа": order.orderDetails?.smallItemQuantity || "",
+          "Үнэ (юань)": order.orderDetails?.priceRMB || "",
+          "Үнэ (төгрөг)": order.orderDetails?.priceTonggur || "",
+          "Хүргэлт боломжтой": order.orderDetails?.deliveryAvailable ? "Тийм" : "Үгүй",
+          "Нэмэлт тайлбар": order.orderDetails?.comments || "",
+        };
+      });
+
+      console.log(`Prepared ${exportData.length} rows for Excel export`);
 
       // Create worksheet and add to workbook
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -72,6 +128,7 @@ const OrderExport = () => {
 
       // Export to file
       XLSX.writeFile(workbook, fileName);
+      console.log(`Excel file ${fileName} created successfully`);
     } catch (error) {
       console.error("Error exporting orders:", error);
       alert("Failed to export orders. Please try again.");

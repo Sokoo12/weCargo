@@ -23,13 +23,17 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp
-} from "lucide-react"; // Added ChevronDown and ChevronUp icons
+} from "lucide-react";
 import { OrderStatus } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 import ConstellationAnimation from "@/components/ConstellationAnimation";
 import moment from "moment"; // Import Moment.js
 import VerticalStepper from "@/components/VerticalStepper";
 import Image from "next/image";
+
+interface ExpandedOrdersState {
+  [key: string]: boolean;
+}
 
 const getDaysSinceOrder = (createdAt: string | Date): number => {
   const orderDate = moment(createdAt); // Parse the order date using Moment.js
@@ -47,7 +51,7 @@ const TrackingPage = () => {
   
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [expandedOrders, setExpandedOrders] = useState<{[key: string]: boolean}>({});
+  const [expandedOrders, setExpandedOrders] = useState<ExpandedOrdersState>({});
 
   const validatePhoneNumber = (phone: string) => {
     const phoneRegex = /^[0-9]{8}$/;
@@ -61,7 +65,7 @@ const TrackingPage = () => {
 
   const handleTrackOrder = async () => {
     if (searchType === "orderId" && !orderId) {
-      setError("Захиалгын дугаараа оруулна уу.");
+      setError("Барааны дугаараа оруулна уу.");
       return;
     }
 
@@ -80,35 +84,39 @@ const TrackingPage = () => {
 
     try {
       let response;
-      if (searchType === "orderId") {
-        response = await fetch(`/api/orders/${orderId}`);
-      } else {
-        response = await fetch(`/api/orders/phone/${phoneNumber}`);
-      }
-
-      if (!response.ok) {
+      const searchId = searchType === "orderId" ? orderId : phoneNumber;
+      const endpoint = searchType === "orderId" 
+        ? `/api/orders/${orderId}` 
+        : `/api/orders/phone/${phoneNumber}`;
+      
+      response = await fetch(endpoint);
+      
+      if (response.status === 404) {
         throw new Error(
           searchType === "orderId"
-            ? "Захиалга олдсонгүй"
-            : "Утасны дугаараар захиалга олдсонгүй"
+            ? "Захиалга олдсонгүй. Барааны дугаараа шалгана уу."
+            : "Утасны дугаараар захиалга олдсонгүй. Дугаараа шалгана уу."
         );
+      } else if (!response.ok) {
+        throw new Error("Системийн алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу.");
       }
 
       const data = await response.json();
       
       // Initialize expanded state for the first order if we received multiple orders
       if (Array.isArray(data) && data.length > 0) {
-        const initialExpandState = {};
+        const initialExpandState: ExpandedOrdersState = {};
         initialExpandState[data[0].id] = true; // Expand the first order
         setExpandedOrders(initialExpandState);
       }
       
       setOrderData(data);
     } catch (error) {
+      console.error("Search error:", error);
       setError(
-        searchType === "orderId"
-          ? "Захиалга олдсонгүй. Захиалгын дугаараа шалгана уу."
-          : "Утасны дугаараар захиалга олдсонгүй. Утасны дугаараа шалгана уу."
+        error instanceof Error 
+          ? error.message 
+          : "Системийн алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу."
       );
     } finally {
       setIsLoading(false);
@@ -154,11 +162,11 @@ const TrackingPage = () => {
               className={`px-2 py-1 rounded-full text-xs ml-2 ${
                 order.status === OrderStatus.DELIVERED
                   ? "bg-green-200 text-green-800"
-                  : order.status === OrderStatus.PENDING
+                  : order.status === OrderStatus.IN_WAREHOUSE
                   ? "bg-yellow-200 text-yellow-800"
                   : order.status === OrderStatus.IN_TRANSIT
                   ? "bg-blue-200 text-blue-800"
-                  : order.status === OrderStatus.CUSTOMS_HOLD
+                  : order.status === OrderStatus.IN_UB
                   ? "bg-red-200 text-red-800"
                   : "bg-[#ffeab8] text-gray-800"
               }`}
@@ -190,16 +198,11 @@ const TrackingPage = () => {
               <p className="py-3 flex items-center">
                 <Package className="w-5 h-5 mr-2 text-primary" />
                 <span className="font-medium">
-                  Захиалгын дугаар
+                  Барааны дугаар
                 </span>{" "}
                 <span className="bg-green-400 rounded-full px-2 ml-2 text-white">
                   {order.packageId}
                 </span>
-              </p>
-              <p className="py-3 flex items-center">
-                <Truck className="w-5 h-5 mr-2 text-primary" />
-                <span className="font-medium">Барааны код:</span>{" "}
-                <span className="ml-2">{order.productId}</span>
               </p>
               <p className="py-3 flex items-center">
                 <Clock className="w-5 h-5 mr-2 text-primary" />
@@ -208,11 +211,11 @@ const TrackingPage = () => {
                   className={`px-2 py-1 rounded-full text-sm ml-2 ${
                     order.status === OrderStatus.DELIVERED
                       ? "bg-green-200 text-green-800"
-                      : order.status === OrderStatus.PENDING
+                      : order.status === OrderStatus.IN_WAREHOUSE
                       ? "bg-yellow-200 text-yellow-800"
                       : order.status === OrderStatus.IN_TRANSIT
                       ? "bg-blue-200 text-blue-800"
-                      : order.status === OrderStatus.CUSTOMS_HOLD
+                      : order.status === OrderStatus.IN_UB
                       ? "bg-red-200 text-red-800"
                       : "bg-[#ffeab8] text-gray-800"
                   }`}
@@ -296,7 +299,7 @@ const TrackingPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
-       <ConstellationAnimation/>
+      <ConstellationAnimation/>
       <motion.div
         className="w-full max-w-lg z-10 mb-[100px] sm:mb-0 mt-[120px]"
         initial={{ opacity: 0, y: -10 }}
@@ -309,7 +312,7 @@ const TrackingPage = () => {
               Захиалгаа хянах
             </CardTitle>
             <CardDescription className="text-gray-400 text-center">
-              Захиалгын дугаар эсвэл утасны дугаараар захиалгаа хянана уу.
+              Барааны дугаар эсвэл утасны дугаараар захиалгаа хянана уу.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -326,7 +329,7 @@ const TrackingPage = () => {
                   onClick={() => handleTabChange("orderId")}
                 >
                   <Package size={16} className="mr-2" />
-                  Захиалгын дугаар
+                  Барааны дугаар
                 </Button>
                 <Button 
                   variant={searchType === "phone" ? "default" : "outline"}
@@ -347,13 +350,13 @@ const TrackingPage = () => {
                 <div className="relative">
                   <Input
                     type="text"
-                    placeholder="Захиалгын дугаар"
+                    placeholder="Барааны дугаараа оруулна уу"
                     value={orderId}
                     onChange={(e) => setOrderId(e.target.value)}
                     className="bg-gray-100 font-bold rounded-full h-[50px] text-gray-700 placeholder-gray-400 border-gray-300 outline-primary"
                   />
                   <div className="absolute text-white outline-none flex items-center justify-center right-2 h-[34px] w-[34px] top-2 bg-primary rounded-full">
-                    <Truck size={20} />
+                    <Package size={20} />
                   </div>
                 </div>
               ) : (
@@ -466,6 +469,7 @@ const TrackingPage = () => {
                     alt="not found"
                     width={230}
                     height={230}
+                    priority={true}
                     className="mx-auto"
                   />
                 </motion.div>

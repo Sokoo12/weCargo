@@ -3,6 +3,15 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
+type SalesOverviewData = {
+  name: string;
+  sales: number;
+};
+
+type MetricsResponse = {
+  salesOverview: SalesOverviewData[];
+};
+
 const SalesOverviewChart = () => {
   const [salesData, setSalesData] = useState<SalesOverviewData[]>([]);
 

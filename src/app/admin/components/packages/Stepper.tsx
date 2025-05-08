@@ -3,8 +3,8 @@ import { Package, Truck, Clock, MapPin, Home } from "lucide-react";
 
 const Stepper = ({ status }: { status: OrderStatus }) => {
   const steps = [
-    { status: OrderStatus.PENDING, label: "Баталгаажсан", icon: Package },
-    { status: OrderStatus.CUSTOMS_HOLD, label: "Хүргэлтэнд гарсан", icon: Truck },
+    { status: OrderStatus.IN_WAREHOUSE, label: "Баталгаажсан", icon: Package },
+    { status: OrderStatus.IN_UB, label: "Хүргэлтэнд гарсан", icon: Truck },
     { status: OrderStatus.IN_TRANSIT, label: "Тээвэрлэгдэж байгаа", icon: Clock },
     { status: OrderStatus.OUT_FOR_DELIVERY, label: "Хүргэлтэнд гарсан", icon: MapPin },
     { status: OrderStatus.DELIVERED, label: "Хүргэгдсэн", icon: Home },

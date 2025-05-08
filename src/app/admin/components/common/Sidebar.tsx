@@ -7,12 +7,16 @@ import {
   ShoppingBag,
   TrendingUp,
   Users,
+  FileText,
+  UserCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { SignOutButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const SIDEBAR_ITEMS = [
   {
@@ -26,6 +30,12 @@ const SIDEBAR_ITEMS = [
     icon: ShoppingBag,
     color: "#8B5CF6",
     href: "/admin/packages",
+  },
+  {
+    name: "Ачааны дэлгэрэнгүй",
+    icon: FileText,
+    color: "#F97316",
+    href: "/admin/orders-details",
   },
   { name: "Ажилтан", icon: Users, color: "#EC4899", href: "/admin/staff" },
 
@@ -51,6 +61,13 @@ const SIDEBAR_ITEMS = [
 
 const Sidebar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    Cookies.remove("adminToken");
+    router.push("/admin/login");
+  };
 
   return (
     <motion.div
@@ -94,38 +111,49 @@ const Sidebar = () => {
             </Link>
           ))}
 
-          <motion.div className="flex items-center p-4 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors mb-2">
-            <LogOut size={20} style={{ color: "#10B981", minWidth: "20px" }} />
-            <AnimatePresence>
-              {isSidebarOpen && (
-                <motion.span
-                  className="ml-4 whitespace-nowrap"
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2, delay: 0.3 }}
+          <Popover>
+            <PopoverTrigger asChild>
+              <motion.div className="flex items-center p-4 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors mb-2 cursor-pointer">
+                <UserCircle size={20} style={{ color: "#6EE7B7", minWidth: "20px" }} />
+                <AnimatePresence>
+                  {isSidebarOpen && (
+                    <motion.span
+                      className="ml-4 whitespace-nowrap"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{ duration: 0.2, delay: 0.3 }}
+                    >
+                      Профайл
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-0 bg-gray-800 border-gray-700 text-gray-100">
+              <div className="p-2 border-b border-gray-700">
+                <p className="font-medium text-sm">Админ</p>
+                <p className="text-xs text-gray-400">Системийн хэрэглэгч</p>
+              </div>
+              <div className="py-2">
+                <Link href="/admin/profile" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700">
+                  <UserCircle size={16} />
+                  <span>Профайл</span>
+                </Link>
+                <Link href="/admin/settings" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700">
+                  <Settings size={16} />
+                  <span>Тохиргоо</span>
+                </Link>
+                <div 
+                  onClick={handleLogout} 
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-700 cursor-pointer"
                 >
-                  <SignOutButton>Гарах</SignOutButton>
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.div>
-          {/* <motion.div className="flex items-center p-4 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors mb-2">
-           
-            <AnimatePresence>
-              {isSidebarOpen && (
-                <motion.span
-                  className="ml-4 whitespace-nowrap"
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2, delay: 0.3 }}
-                >
-                 <SignedOut/>
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.div> */}
+                  <LogOut size={16} />
+                  <span>Гарах</span>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </nav>
         <Image
           src={"/logo.png"}

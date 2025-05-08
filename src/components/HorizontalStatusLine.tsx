@@ -2,8 +2,8 @@ import { OrderStatus } from "@/types/enums"; // Import your OrderStatus enum
 
 const HorizontalTimeline = ({ status }: { status: OrderStatus }) => {
   const statuses = [
-    { status: OrderStatus.PENDING, label: "Order Confirmed" },
-    { status: OrderStatus.CUSTOMS_HOLD, label: "Order Shipped" },
+    { status: OrderStatus.IN_WAREHOUSE, label: "Order Confirmed" },
+    { status: OrderStatus.IN_UB, label: "Order Shipped" },
     { status: OrderStatus.IN_TRANSIT, label: "In Transit" },
     { status: OrderStatus.OUT_FOR_DELIVERY, label: "Out for Delivery" },
     { status: OrderStatus.DELIVERED, label: "Delivered" },
@@ -45,8 +45,8 @@ const HorizontalTimeline = ({ status }: { status: OrderStatus }) => {
               {s.label}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {s.status === OrderStatus.PENDING && "09:15 AM, January 1, 2024"}
-              {s.status === OrderStatus.CUSTOMS_HOLD && "12:20 PM, January 4, 2024"}
+              {s.status === OrderStatus.IN_WAREHOUSE && "09:15 AM, January 1, 2024"}
+              {s.status === OrderStatus.IN_UB && "12:20 PM, January 4, 2024"}
               {s.status === OrderStatus.IN_TRANSIT && "07:00 AM, January 8, 2024"}
               {s.status === OrderStatus.OUT_FOR_DELIVERY && "Out for Delivery"}
               {s.status === OrderStatus.DELIVERED && "Estimated delivery by 09:20 AM"}

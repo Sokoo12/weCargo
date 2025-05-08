@@ -1,68 +1,82 @@
 import { UserCheck, UserPlus, UsersIcon, UserX } from "lucide-react";
-
 import Header from "../components/common/Header";
-import UsersList from "../components/staff/UsersList";
-import { clerkClient } from "@clerk/express";
+import EmployeesList from "../components/staff/EmployeesList";
+import { getAllEmployees } from "@/lib/actions/employee.actions";
 
 const userStats = {
-  totalUsers: 152845,
-  newUsersToday: 243,
-  activeUsers: 98520,
-  churnRate: "2.4%",
+  totalEmployees: 0,
+  activeEmployees: 0,
+  managersCount: 0,
+  deliveryCount: 0,
 };
 
 const StaffPage = async () => {
-  const response = await clerkClient.users.getUserList({
-    orderBy: "-created_at",
-    limit: 10,
-  });
+  // Fetch employees using server action (no auth issues)
+  const employees = await getAllEmployees();
 
-  const usersData: ClerkUser[] = response.data.map((user) => ({
-    id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    username: user.username,
-    email: user.emailAddresses[0].emailAddress,
-    imageUrl: user.imageUrl,
-	createdAt:user.createdAt,
-	lastActiveAt:user.lastActiveAt
-  }));
+  // Calculate stats
+  userStats.totalEmployees = employees.length;
+  userStats.activeEmployees = employees.filter(emp => emp.isActive).length;
+  userStats.managersCount = employees.filter(emp => emp.role === 'MANAGER').length;
+  userStats.deliveryCount = employees.filter(emp => emp.role === 'DELIVERY').length;
 
-  //   console.log(users[0].)
-  
   return (
-    <div className="flex-1 overflow-auto relative z-10">
-      <Header title="Ажилтан" />
+    <div>
+      <Header title="Ажилтны удирдлага" />
 
-      <main className="max-w-7xl mx-auto py-6 px-4 lg:px-8">
-        {/* STATS */}
-        {/* <motion.div
-					className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8'
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 1 }}
-				>
-					<StatCard
-						name='Total Users'
-						icon={UsersIcon}
-						value={userStats.totalUsers.toLocaleString()}
-						color='#6366F1'
-					/>
-					<StatCard name='New Users Today' icon={UserPlus} value={userStats.newUsersToday} color='#10B981' />
-					<StatCard
-						name='Active Users'
-						icon={UserCheck}
-						value={userStats.activeUsers.toLocaleString()}
-						color='#F59E0B'
-					/>
-					<StatCard name='Churn Rate' icon={UserX} value={userStats.churnRate} color='#EF4444' />
-				</motion.div> */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-gray-800 bg-opacity-50 backdrop-blur-md p-6 rounded-xl border border-gray-700 shadow-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-400 text-sm">Нийт ажилтан</p>
+              <h3 className="text-white text-2xl font-bold mt-1">{userStats.totalEmployees}</h3>
+            </div>
+            <div className="bg-blue-500 p-3 rounded-lg">
+              <UsersIcon className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </div>
 
-        <UsersList
-          usersData={usersData}
-        />
-      </main>
+        <div className="bg-gray-800 bg-opacity-50 backdrop-blur-md p-6 rounded-xl border border-gray-700 shadow-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-400 text-sm">Идэвхтэй ажилтан</p>
+              <h3 className="text-white text-2xl font-bold mt-1">{userStats.activeEmployees}</h3>
+            </div>
+            <div className="bg-green-500 p-3 rounded-lg">
+              <UserCheck className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 bg-opacity-50 backdrop-blur-md p-6 rounded-xl border border-gray-700 shadow-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-400 text-sm">Менежер</p>
+              <h3 className="text-white text-2xl font-bold mt-1">{userStats.managersCount}</h3>
+            </div>
+            <div className="bg-purple-500 p-3 rounded-lg">
+              <UserPlus className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 bg-opacity-50 backdrop-blur-md p-6 rounded-xl border border-gray-700 shadow-lg">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-400 text-sm">Хүргэгч</p>
+              <h3 className="text-white text-2xl font-bold mt-1">{userStats.deliveryCount}</h3>
+            </div>
+            <div className="bg-orange-500 p-3 rounded-lg">
+              <UserX className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <EmployeesList initialEmployees={employees} />
     </div>
   );
 };
+
 export default StaffPage;

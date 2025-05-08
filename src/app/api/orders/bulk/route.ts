@@ -1,132 +1,152 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { OrderSize, OrderStatus } from "@/types/enums";
+import { db } from "@/lib/db";
+import { OrderStatus as PrismaOrderStatus } from "@prisma/client";
+import { OrderStatus } from "@/types/enums";
 
-const prisma = new PrismaClient();
+// Map application enum values to Prisma enum values
+const mapStatusToPrisma = (status: OrderStatus): PrismaOrderStatus => {
+  // Both enums have matching values but TypeScript needs explicit mapping
+  switch(status) {
+    case OrderStatus.IN_WAREHOUSE:
+      return 'IN_WAREHOUSE' as PrismaOrderStatus;
+    case OrderStatus.IN_TRANSIT:
+      return 'IN_TRANSIT' as PrismaOrderStatus;
+    case OrderStatus.IN_UB:
+      return 'IN_UB' as PrismaOrderStatus;
+    case OrderStatus.OUT_FOR_DELIVERY:
+      return 'OUT_FOR_DELIVERY' as PrismaOrderStatus;
+    case OrderStatus.DELIVERED:
+      return 'DELIVERED' as PrismaOrderStatus;
+    case OrderStatus.CANCELLED:
+      return 'CANCELLED' as PrismaOrderStatus;
+    default:
+      return 'IN_WAREHOUSE' as PrismaOrderStatus;
+  }
+};
+
+interface OrderBody {
+  orderId: string;
+  packageId: string;
+  phoneNumber?: string;
+  isShipped: boolean;
+  isDamaged: boolean;
+  damageDescription?: string;
+  status: OrderStatus;
+  createdAt: Date;
+  orderDetails?: {
+    totalQuantity: number;
+    shippedQuantity: number;
+    largeItemQuantity: number;
+    smallItemQuantity: number;
+    priceRMB: number;
+    priceTonggur: number;
+    deliveryAvailable: boolean;
+    comments?: string;
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    const body: OrderBody[] = await request.json(); // Expect an array of orders
+    const orders: OrderBody[] = await request.json();
 
-    console.log("bodyy: ==:>", body);
-
-    // Validate the input
-    if (!Array.isArray(body)) {
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
       return NextResponse.json(
-        { error: "Алдаа: Захиалгын мэдээлэл буруу байна." },
+        { error: "No valid orders provided" },
         { status: 400 }
       );
     }
 
-    // // Check for duplicate packageIds in the request
-    // const packageIds = body.map((order) => order.packageId);
+    console.log(`Processing ${orders.length} orders for bulk import`);
 
-    // // Check for existing packageIds in the database
-    // const existingOrders = await prisma.order.findMany({
-    //   where: {
-    //     packageId: {
-    //       in: packageIds,
-    //     },
-    //   },
-    //   select: {
-    //     packageId: true,
-    //   },
-    // });
+    // Check for duplicate packageIds
+    const packageIds = orders.map(order => order.packageId);
+    const uniquePackageIds = new Set(packageIds);
+    
+    if (uniquePackageIds.size !== packageIds.length) {
+      return NextResponse.json(
+        { error: "Duplicate package IDs found in import data" },
+        { status: 400 }
+      );
+    }
 
-    // if (existingOrders.length > 0) {
-    //   const existingPackageIds = existingOrders.map((order) => order.packageId);
-    //   return NextResponse.json(
-    //     {
-    //       error: "Зарим захиалгын дугаар өмнө бүртгэгдсэн байна.",
-    //       existingPackageIds,
-    //     },
-    //     { status: 400 }
-    //   );
-    // }
+    // Check if any packageIds already exist in the database
+    const existingPackages = await db.order.findMany({
+      where: {
+        packageId: {
+          in: packageIds
+        }
+      },
+      select: { packageId: true }
+    });
 
-    // data: {
-    //   packageId,
-    //   productId,
-    //   phoneNumber,
-    //   size,
-    //   status,
-    //   note,
-    //   userId,
-    //   isBroken: isBroken ?? false, // Ensure default value
-    //   deliveryAddress,
-    //   deliveryCost,
-    //   isPaid,
-    //   statusHistory: {
-    //     create: {
-    //       status,
-    //       timestamp: new Date(),
-    //     },
-    //   },
-    // },
-    // include: {
-    //   statusHistory: true, // Include status history in response
-    // },
+    if (existingPackages.length > 0) {
+      const existingIds = existingPackages.map(p => p.packageId).join(", ");
+      return NextResponse.json(
+        { error: `These package IDs already exist: ${existingIds}` },
+        { status: 400 }
+      );
+    }
 
-    // Create multiple orders with their status history
-    await prisma.$transaction(
-      body.map((order) =>
-        prisma.order.create({
-          data: {
-            packageId: String(order.packageId),
-            productId: String(order.productId),
-            phoneNumber: order.phoneNumber,
-            size: order.size,
-            status: order.status,
-            note: order.note,
-            // userId: order.userId,
-            isBroken: order.isBroken ?? false, // Ensure default value
-            deliveryAddress: order.deliveryAddress,
-            deliveryCost: order.deliveryCost,
-            isPaid: order.isPaid,
-            createdAt: order.createdAt,
-            statusHistory: {
-              create: {
-                status: order.status,
-                timestamp: new Date(),
-              },
+    // Create orders in a transaction
+    const createdOrders = await db.$transaction(
+      orders.map((orderData) => {
+        const validStatus = mapStatusToPrisma(orderData.status);
+        
+        const orderCreateData: any = {
+          orderId: orderData.orderId,
+          packageId: orderData.packageId,
+          phoneNumber: orderData.phoneNumber,
+          isShipped: orderData.isShipped,
+          isDamaged: orderData.isDamaged || false,
+          damageDescription: orderData.isDamaged ? orderData.damageDescription : undefined,
+          createdAt: orderData.createdAt || new Date(),
+          status: validStatus,
+          statusHistory: {
+            create: {
+              status: validStatus,
+              timestamp: new Date(),
             },
           },
+        };
+
+        // Only create order details if isShipped is true and orderDetails is provided
+        if (orderData.isShipped && orderData.orderDetails) {
+          Object.assign(orderCreateData, {
+            orderDetails: {
+              create: {
+                totalQuantity: orderData.orderDetails.totalQuantity,
+                shippedQuantity: orderData.orderDetails.shippedQuantity,
+                largeItemQuantity: orderData.orderDetails.largeItemQuantity,
+                smallItemQuantity: orderData.orderDetails.smallItemQuantity,
+                priceRMB: orderData.orderDetails.priceRMB,
+                priceTonggur: orderData.orderDetails.priceTonggur,
+                deliveryAvailable: orderData.orderDetails.deliveryAvailable,
+                comments: orderData.orderDetails.comments,
+              }
+            }
+          });
+        }
+
+        return db.order.create({
+          data: orderCreateData,
           include: {
-            statusHistory: true, // Include status history in response
+            statusHistory: true,
+            orderDetails: true,
           },
-        })
-      )
+        });
+      })
     );
 
-    // // Map the response to the Order type
-    // createdOrders.map((newOrder) => ({
-    //   id: newOrder.id,
-    //   packageId: newOrder.packageId,
-    //   productId: newOrder.productId,
-    //   phoneNumber: newOrder.phoneNumber,
-    //   size: newOrder.size as OrderSize,
-    //   status: newOrder.status as OrderStatus,
-    //   statusHistory: newOrder.statusHistory.map((history) => ({
-    //     id: history.id,
-    //     status: history.status as OrderStatus,
-    //     timestamp: history.timestamp,
-    //     orderId: history.orderId,
-    //   })),
-    //   createdAt: newOrder.createdAt,
-    //   note: newOrder.note,
-    //   isBroken: newOrder.isBroken,
-    //   userId: newOrder.userId,
-    //   deliveryAddress: newOrder.deliveryAddress,
-    //   deliveryCost: newOrder.deliveryCost,
-    //   isPaid: newOrder.isPaid,
-    // }));
-
-    return NextResponse.json({ status: 201 });
+    return NextResponse.json({ 
+      success: true, 
+      count: createdOrders.length, 
+      orders: createdOrders.map(o => o.orderId) 
+    }, { status: 201 });
   } catch (error) {
-    console.log("Failed to create orders:", error);
+    console.error("Failed to create bulk orders:", error);
     return NextResponse.json(
-      { error: "Захиалга үүсгэхэд алдаа гарлаа." },
+      { error: `Failed to create bulk orders: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     );
   }
-}
+} 

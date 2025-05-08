@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Ubuntu_Sans } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
+import { UserAuthProvider } from "@/context/UserAuthContext";
 
 const ubuntuSans = Ubuntu_Sans({
   subsets: ["latin"],
@@ -19,18 +19,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: { colorPrimary: "#624cf5" },
-      }}
-    >
-      <html lang="en">
-        <body
-          className={`${ubuntuSans.className}`}
-        >
+    <html lang="en">
+      <body className={`${ubuntuSans.className}`}>
+        <UserAuthProvider>
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </UserAuthProvider>
+      </body>
+    </html>
   );
 }

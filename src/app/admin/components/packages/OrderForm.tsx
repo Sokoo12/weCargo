@@ -22,12 +22,33 @@ import React, { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
-import { OrderSize, OrderStatus } from "@/types/enums";
-import translatePackageSize from "@/utils/translatePackageSize";
+import { OrderStatus } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 import { Edit, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Order, OrderDetails } from "@/types/order";
+
+interface OrderBody {
+  orderId: string;
+  packageId: string;
+  phoneNumber?: string;
+  isShipped: boolean;
+  isDamaged: boolean;
+  damageDescription?: string;
+  status: OrderStatus;
+  createdAt: Date;
+  orderDetails?: {
+    totalQuantity: number;
+    shippedQuantity: number;
+    largeItemQuantity: number;
+    smallItemQuantity: number;
+    priceRMB: number;
+    priceTonggur: number;
+    deliveryAvailable: boolean;
+    comments?: string;
+  };
+}
 
 function OrderForm({
   updateMode,
@@ -37,15 +58,23 @@ function OrderForm({
   orderId?: string;
 }) {
   const [date, setDate] = useState<Date>(new Date());
-  const [isBroken, setIsBroken] = useState<boolean>(false);
+  const [orderId_, setOrderId] = useState<string>("");
   const [packageId, setPackageId] = useState<string>("");
-  const [productId, setProductId] = useState<string>("");
-  const [size, setSize] = useState<OrderSize>(OrderSize.SMALL);
   const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [status, setStatus] = useState<OrderStatus>(OrderStatus.PENDING);
-  const [note, setNote] = useState<string>("");
-  const [deliveryAddress, setDeliveryAddress] = useState<string>("");
-  const [deliveryCost, setDeliveryCost] = useState<number>(0);
+  const [isShipped, setIsShipped] = useState<boolean>(false);
+  const [isDamaged, setIsDamaged] = useState<boolean>(false);
+  const [damageDescription, setDamageDescription] = useState<string>("");
+  const [status, setStatus] = useState<OrderStatus>(OrderStatus.IN_WAREHOUSE);
+  
+  // Order details fields
+  const [totalQuantity, setTotalQuantity] = useState<number>(0);
+  const [shippedQuantity, setShippedQuantity] = useState<number>(0);
+  const [largeItemQuantity, setLargeItemQuantity] = useState<number>(0);
+  const [smallItemQuantity, setSmallItemQuantity] = useState<number>(0);
+  const [priceRMB, setPriceRMB] = useState<number>(0);
+  const [priceTonggur, setPriceTonggur] = useState<number>(0);
+  const [deliveryAvailable, setDeliveryAvailable] = useState<boolean>(false);
+  const [comments, setComments] = useState<string>("");
 
   // Fetch order data in update mode
   const { data: orderData } = useQuery({
@@ -62,16 +91,35 @@ function OrderForm({
   // Update form fields when orderData changes
   useEffect(() => {
     if (orderData) {
+      setOrderId(orderData.orderId);
       setPackageId(orderData.packageId);
-      setProductId(orderData.productId);
       setPhoneNumber(orderData.phoneNumber || "");
-      setSize(orderData.size);
-      setStatus(orderData.status);
-      setIsBroken(orderData.isBroken);
-      setNote(orderData.note || "");
+      setIsShipped(orderData.isShipped);
+      setIsDamaged(orderData.isDamaged || false);
+      setDamageDescription(orderData.damageDescription || "");
       setDate(new Date(orderData.createdAt));
-      setDeliveryAddress(orderData.deliveryAddress || "");
-      setDeliveryCost(orderData.deliveryCost || 0);
+      
+      // First try to get status from the status field
+      if (orderData.status) {
+        setStatus(orderData.status);
+      }
+      // Fallback to getting status from the most recent status history entry
+      else if (orderData.statusHistory && orderData.statusHistory.length > 0) {
+        const latestStatus = orderData.statusHistory[orderData.statusHistory.length - 1].status;
+        setStatus(latestStatus);
+      }
+      
+      // Set order details fields if available
+      if (orderData.orderDetails) {
+        setTotalQuantity(orderData.orderDetails.totalQuantity);
+        setShippedQuantity(orderData.orderDetails.shippedQuantity);
+        setLargeItemQuantity(orderData.orderDetails.largeItemQuantity);
+        setSmallItemQuantity(orderData.orderDetails.smallItemQuantity);
+        setPriceRMB(orderData.orderDetails.priceRMB);
+        setPriceTonggur(orderData.orderDetails.priceTonggur);
+        setDeliveryAvailable(orderData.orderDetails.deliveryAvailable);
+        setComments(orderData.orderDetails.comments || "");
+      }
     }
   }, [orderData]);
 
@@ -80,16 +128,27 @@ function OrderForm({
   // Mutation for creating or updating an order
   const mutation = useMutation({
     mutationFn: async (orderBody: OrderBody) => {
-      const response = await fetch(
-        updateMode ? `/api/orders/${orderId}` : "/api/orders",
-        {
-          method: updateMode ? "PATCH" : "POST",
+      try {
+        const url = updateMode ? `/api/orders/${orderId}` : "/api/orders";
+        console.log(`Submitting order to ${url}`, orderBody);
+        
+        const response = await fetch(url, {
+          method: updateMode ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(orderBody),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Server error:", errorData);
+          throw new Error(`Failed to submit order: ${response.status} ${response.statusText}`);
         }
-      );
-      if (!response.ok) throw new Error("Failed to submit order");
-      return response.json();
+        
+        return response.json();
+      } catch (error) {
+        console.error("Order submission error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success(
@@ -103,24 +162,35 @@ function OrderForm({
     },
     onError: (error) => {
       console.error("Error submitting order:", error);
-      toast.error("Алдаа гарлаа. Дахин оролдоно уу.");
+      toast.error(`Алдаа гарлаа: ${error.message}`);
     },
   });
 
   const handleSubmit = () => {
     const orderBody: OrderBody = {
+      orderId: orderId_,
       packageId,
-      productId,
-      phoneNumber,
-      size,
+      phoneNumber: phoneNumber || undefined,
+      isShipped,
+      isDamaged,
+      damageDescription: isDamaged ? damageDescription : undefined,
       status,
-      isBroken,
-      note: isBroken ? note : undefined,
       createdAt: date,
-      // userId: "65a3b2c4d5e6f7890a1b2c3e", // Replace with actual user ID
-      deliveryAddress: deliveryAddress || undefined,
-      deliveryCost: deliveryCost || undefined,
     };
+
+    // Only include orderDetails if isShipped is true
+    if (isShipped) {
+      orderBody.orderDetails = {
+        totalQuantity,
+        shippedQuantity,
+        largeItemQuantity,
+        smallItemQuantity,
+        priceRMB,
+        priceTonggur,
+        deliveryAvailable,
+        comments: comments || undefined,
+      };
+    }
 
     mutation.mutate(orderBody);
   };
@@ -144,53 +214,23 @@ function OrderForm({
             {updateMode ? "Захиалга шинэчлэх" : "Бүртгэл хийх"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col sm:flex-row gap-5 overflow-y-auto p-5 mb-5">
+        <div className="flex flex-col gap-5 overflow-y-auto p-5 mb-5">
           <div className="flex flex-col gap-3 w-full">
             <label>Захиалгын дугаар</label>
+            <Input
+              value={orderId_}
+              onChange={(e) => setOrderId(e.target.value)}
+            />
+            <label>Ачааны дугаар(Track Number)</label>
             <Input
               value={packageId}
               onChange={(e) => setPackageId(e.target.value)}
             />
-            <label>Барааны код</label>
-            <Input
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-            />
             <label>Утасны дугаар</label>
             <Input
-              type="number"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
-            <label>Хүргэлтийн хаяг (Сонголттой)</label>
-            <Input
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-            />
-            <label>Хүргэлтийн үнэ (Сонголттой)</label>
-            <Input
-              type="number"
-              value={deliveryCost}
-              onChange={(e) => setDeliveryCost(Number(e.target.value))}
-            />
-            <label>Барааны хэмжээ</label>
-            <Select
-              value={size}
-              onValueChange={(value: OrderSize) => setSize(value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Барааны хэмжээ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {Object.values(OrderSize).map((size) => (
-                    <SelectItem key={size} value={size}>
-                      {translatePackageSize(size)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
             <label>Төлөв</label>
             <Select
               value={status}
@@ -213,21 +253,104 @@ function OrderForm({
                 </SelectGroup>
               </SelectContent>
             </Select>
-            <label>Эвдрэлтэй дутуу эсэх</label>
+            
+            <label>Эвдрэлтэй эсвэл дутуу эсэх</label>
             <div className="flex items-center gap-5">
               <Switch
-                checked={isBroken}
-                onCheckedChange={() => setIsBroken(!isBroken)}
+                checked={isDamaged}
+                onCheckedChange={() => setIsDamaged(!isDamaged)}
               />
             </div>
-            {isBroken && (
-              <>
-                <label>Тэмдэглэл</label>
+            
+            {isDamaged && (
+              <div>
+                <label>Эвдрэлийн тайлбар</label>
                 <Textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                  value={damageDescription}
+                  onChange={(e) => setDamageDescription(e.target.value)}
+                  placeholder="Эвдрэлийн талаар дэлгэрэнгүй бичнэ үү"
                 />
-              </>
+              </div>
+            )}
+            
+            <label>Ачигдсан эсэх</label>
+            <div className="flex items-center gap-5">
+              <Switch
+                checked={isShipped}
+                onCheckedChange={() => setIsShipped(!isShipped)}
+              />
+            </div>
+            
+            {isShipped && (
+              <div className="mt-4 p-4 border rounded-md">
+                <h3 className="font-medium mb-3">Order Details (Ачигдсан бараа)</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label>Нийт тоо хэмжээ</label>
+                    <Input
+                      type="number"
+                      value={totalQuantity}
+                      onChange={(e) => setTotalQuantity(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label>Ачигдсан тоо</label>
+                    <Input
+                      type="number"
+                      value={shippedQuantity}
+                      onChange={(e) => setShippedQuantity(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label>Том ачаа</label>
+                    <Input
+                      type="number"
+                      value={largeItemQuantity}
+                      onChange={(e) => setLargeItemQuantity(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label>Жижиг ачаа</label>
+                    <Input
+                      type="number"
+                      value={smallItemQuantity}
+                      onChange={(e) => setSmallItemQuantity(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label>Үнэ (Юань)</label>
+                    <Input
+                      type="number"
+                      value={priceRMB}
+                      onChange={(e) => setPriceRMB(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label>Үнэ (Төгрөг)</label>
+                    <Input
+                      type="number"
+                      value={priceTonggur}
+                      onChange={(e) => setPriceTonggur(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label>Хүргэлттэй эсэх</label>
+                    <div className="flex items-center gap-5">
+                      <Switch
+                        checked={deliveryAvailable}
+                        onCheckedChange={() => setDeliveryAvailable(!deliveryAvailable)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label>Нэмэлт тайлбар</label>
+                    <Textarea
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
           <div>

@@ -85,8 +85,8 @@ const OrderFilters = ({ onFilter }: OrderFiltersProps) => {
           <div className="space-y-2">
             <label className="text-sm text-gray-300">Төлөв</label>
             <Select 
-              value={status || undefined}  // Changed to handle null value
-              onValueChange={(value) => setStatus(value as OrderStatus)}
+              value={status || "ALL"}
+              onValueChange={(value) => setStatus(value === "ALL" ? null : value as OrderStatus)}
             >
               <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                 <SelectValue placeholder="Төлөв сонгох" />

@@ -61,9 +61,9 @@ const StatusChangeModal = ({ isOpen, onClose, currentStatus, orderId }: StatusMo
   };
 
   const statusColors:any = {
-    [OrderStatus.PENDING]: "text-yellow-800",
+    [OrderStatus.IN_WAREHOUSE]: "text-yellow-800",
     [OrderStatus.IN_TRANSIT]: "text-blue-800",
-    [OrderStatus.CUSTOMS_HOLD]: "text-red-800",
+    [OrderStatus.IN_UB]: "text-orange-800",
     [OrderStatus.DELIVERED]: "text-green-800",
     [OrderStatus.CANCELLED]: "text-gray-800",
   };

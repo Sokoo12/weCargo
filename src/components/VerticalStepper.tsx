@@ -11,13 +11,13 @@ import {
 const VerticalStepper = ({ status }: { status: OrderStatus }) => {
   const steps = [
     {
-      status: OrderStatus.PENDING,
-      label: "Захиалга баталгаажсан",
+      status: OrderStatus.IN_WAREHOUSE,
+      label: "Эрээн агуулахад ирсэн",
       icon: <Package className="w-5 h-5" />,
     },
     {
-      status: OrderStatus.CUSTOMS_HOLD,
-      label: "Захиалга хүргэлтэнд гарсан",
+      status: OrderStatus.IN_UB,
+      label: "Хотод ирсэн",
       icon: <Truck className="w-5 h-5" />,
     },
     {

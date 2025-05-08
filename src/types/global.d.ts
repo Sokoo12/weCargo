@@ -8,7 +8,6 @@ type StatusHistory = {
 type Order = {
   id: string;
   packageId: string;
-  productId: string;
   phoneNumber?: string | null;
   size: OrderSize;
   status: OrderStatus;
@@ -40,7 +39,6 @@ type Order = {
 
 type OrderBody = {
   packageId: string;
-  productId: string;
   phoneNumber: string | null;
   size: OrderSize;
   status: OrderStatus;

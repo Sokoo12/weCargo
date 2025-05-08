@@ -11,12 +11,12 @@ import {
 const HorizontalStepper = ({ status }: { status: OrderStatus }) => {
   const steps = [
     {
-      status: OrderStatus.PENDING,
+      status: OrderStatus.IN_WAREHOUSE,
       label: "Order Confirmed",
       icon: <Package className="w-5 h-5" />,
     },
     {
-      status: OrderStatus.CUSTOMS_HOLD,
+      status: OrderStatus.IN_UB,
       label: "Order Shipped",
       icon: <Truck className="w-5 h-5" />,
     },
