@@ -16,14 +16,14 @@ const VerticalStepper = ({ status }: { status: OrderStatus }) => {
       icon: <Package className="w-5 h-5" />,
     },
     {
+      status: OrderStatus.IN_TRANSIT,
+      label: "Эрээн агуулахаас гарсан",
+      icon: <Clock className="w-5 h-5" />,
+    },
+    {
       status: OrderStatus.IN_UB,
       label: "Хотод ирсэн",
       icon: <Truck className="w-5 h-5" />,
-    },
-    {
-      status: OrderStatus.IN_TRANSIT,
-      label: "Тээвэрлэгдэж байгаа",
-      icon: <Clock className="w-5 h-5" />,
     },
     {
       status: OrderStatus.OUT_FOR_DELIVERY,

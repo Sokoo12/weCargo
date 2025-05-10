@@ -15,7 +15,10 @@ const ubuntuSans = Ubuntu_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Cargoo",
+  title: {
+    default: "Cargoo",
+    template: "%s | Cargoo"
+  },
   description: "Cargoo - Fast and reliable cargo management",
   metadataBase: new URL("https://wecargo.vercel.app"),
 };
@@ -27,6 +30,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Preconnect to origin to improve loading performance */}
+        <link rel="preconnect" href="/" />
+        
+        {/* Properly preload critical assets with correct 'as' attribute */}
+        <link 
+          rel="preload" 
+          href="/logo.png" 
+          as="image" 
+        />
+        <link 
+          rel="preload" 
+          href="/assets/images/rocket-launch.png" 
+          as="image" 
+        />
+      </head>
       <body className={`${ubuntuSans.className}`}>
         <RouteLoadingIndicator />
         <PerformanceProvider>

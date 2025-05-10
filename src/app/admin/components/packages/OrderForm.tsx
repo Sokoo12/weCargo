@@ -22,7 +22,7 @@ import React, { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
-import { OrderStatus } from "@/types/enums";
+import { OrderStatus, OrderSize } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 import { Edit, Package } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,8 @@ interface OrderBody {
   orderId: string;
   packageId: string;
   phoneNumber?: string;
+  size?: OrderSize;
+  package_size?: string;
   isShipped: boolean;
   isDamaged: boolean;
   damageDescription?: string;
@@ -61,6 +63,8 @@ function OrderForm({
   const [orderId_, setOrderId] = useState<string>("");
   const [packageId, setPackageId] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [size, setSize] = useState<OrderSize>(OrderSize.MEDIUM);
+  const [packageSize, setPackageSize] = useState<string>("");
   const [isShipped, setIsShipped] = useState<boolean>(false);
   const [isDamaged, setIsDamaged] = useState<boolean>(false);
   const [damageDescription, setDamageDescription] = useState<string>("");
@@ -94,6 +98,8 @@ function OrderForm({
       setOrderId(orderData.orderId);
       setPackageId(orderData.packageId);
       setPhoneNumber(orderData.phoneNumber || "");
+      setSize(orderData.size || OrderSize.MEDIUM);
+      setPackageSize(orderData.package_size || "");
       setIsShipped(orderData.isShipped);
       setIsDamaged(orderData.isDamaged || false);
       setDamageDescription(orderData.damageDescription || "");
@@ -171,6 +177,8 @@ function OrderForm({
       orderId: orderId_,
       packageId,
       phoneNumber: phoneNumber || undefined,
+      size,
+      package_size: packageSize,
       isShipped,
       isDamaged,
       damageDescription: isDamaged ? damageDescription : undefined,
@@ -231,6 +239,35 @@ function OrderForm({
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label>Ачааны хэмжээ (категори)</label>
+                <Select
+                  value={size}
+                  onValueChange={(value) => setSize(value as OrderSize)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Хэмжээ сонгох" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value={OrderSize.SMALL}>Жижиг</SelectItem>
+                      <SelectItem value={OrderSize.MEDIUM}>Дунд</SelectItem>
+                      <SelectItem value={OrderSize.LARGE}>Том</SelectItem>
+                      <SelectItem value={OrderSize.UNDEFINED}>Тодорхойгүй</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label>Ачааны хэмжээ (дэлгэрэнгүй)</label>
+                <Input
+                  value={packageSize}
+                  onChange={(e) => setPackageSize(e.target.value)}
+                  placeholder="Жишээ: 30x40x50 см"
+                />
+              </div>
+            </div>
             <label>Төлөв</label>
             <Select
               value={status}

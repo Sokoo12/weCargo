@@ -22,7 +22,8 @@ import {
   Search,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowLeft
 } from "lucide-react";
 import { OrderStatus } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
@@ -30,9 +31,22 @@ import ConstellationAnimation from "@/components/ConstellationAnimation";
 import moment from "moment"; // Import Moment.js
 import VerticalStepper from "@/components/VerticalStepper";
 import Image from "next/image";
+import DeliveryForm from "@/components/DeliveryForm";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { toast } from "react-hot-toast";
 
 interface ExpandedOrdersState {
   [key: string]: boolean;
+}
+
+interface DeliveryOptionsState {
+  [key: string]: {
+    showOptions: boolean;
+    deliveryChoice: "delivery" | "pickup" | null;
+    showForm: boolean;
+    deliveryRequested: boolean;
+  };
 }
 
 const getDaysSinceOrder = (createdAt: string | Date): number => {
@@ -52,6 +66,7 @@ const TrackingPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<ExpandedOrdersState>({});
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOptionsState>({});
 
   const validatePhoneNumber = (phone: string) => {
     const phoneRegex = /^[0-9]{8}$/;
@@ -65,7 +80,7 @@ const TrackingPage = () => {
 
   const handleTrackOrder = async () => {
     if (searchType === "orderId" && !orderId) {
-      setError("Барааны дугаараа оруулна уу.");
+      setError("Track Number оруулна уу.");
       return;
     }
 
@@ -81,6 +96,7 @@ const TrackingPage = () => {
     setError(null);
     setOrderData(null);
     setExpandedOrders({});
+    setDeliveryOptions({});
 
     try {
       let response;
@@ -89,14 +105,21 @@ const TrackingPage = () => {
         ? `/api/orders/${orderId}` 
         : `/api/orders/phone/${phoneNumber}`;
       
-      response = await fetch(endpoint);
+      response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
       if (response.status === 404) {
         throw new Error(
           searchType === "orderId"
-            ? "Захиалга олдсонгүй. Барааны дугаараа шалгана уу."
+            ? "Захиалга олдсонгүй. Track Number шалгана уу."
             : "Утасны дугаараар захиалга олдсонгүй. Дугаараа шалгана уу."
         );
+      } else if (response.status === 405) {
+        throw new Error("API endpoint method not allowed. Please check server implementation.");
       } else if (!response.ok) {
         throw new Error("Системийн алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу.");
       }
@@ -108,6 +131,28 @@ const TrackingPage = () => {
         const initialExpandState: ExpandedOrdersState = {};
         initialExpandState[data[0].id] = true; // Expand the first order
         setExpandedOrders(initialExpandState);
+        
+        // Initialize delivery options state for each order
+        const initialDeliveryState: DeliveryOptionsState = {};
+        data.forEach(order => {
+          initialDeliveryState[order.id] = {
+            showOptions: false,
+            deliveryChoice: null,
+            showForm: false,
+            deliveryRequested: false
+          };
+        });
+        setDeliveryOptions(initialDeliveryState);
+      } else if (!Array.isArray(data) && data) {
+        // Initialize delivery options for a single order
+        setDeliveryOptions({
+          [data.id]: {
+            showOptions: false,
+            deliveryChoice: null,
+            showForm: false,
+            deliveryRequested: false
+          }
+        });
       }
       
       setOrderData(data);
@@ -135,9 +180,66 @@ const TrackingPage = () => {
     }));
   };
 
+  const handleDeliveryOptionToggle = (orderId: string) => {
+    setDeliveryOptions(prev => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        showOptions: !prev[orderId]?.showOptions
+      }
+    }));
+  };
+
+  const handleDeliveryChoiceChange = (orderId: string, choice: "delivery" | "pickup") => {
+    setDeliveryOptions(prev => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        deliveryChoice: choice,
+        showForm: choice === "delivery"
+      }
+    }));
+  };
+
+  const handleDeliverySuccess = (orderId: string) => {
+    // Update delivery state to show success and hide form
+    setDeliveryOptions(prev => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        showForm: false,
+        deliveryRequested: true
+      }
+    }));
+    
+    // Refetch the order data to get updated status
+    handleTrackOrder();
+  };
+
+  const handleCancelDelivery = (orderId: string) => {
+    setDeliveryOptions(prev => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        showForm: false
+      }
+    }));
+  };
+
+  // Function to check if an order is eligible for delivery option
+  const isEligibleForDelivery = (status: OrderStatus) => {
+    return status === OrderStatus.IN_UB;
+  };
+
   // Function to render a single order
   const renderOrderDetails = (order: Order) => {
     const isExpanded = expandedOrders[order.id] || false;
+    const orderDeliveryOptions = deliveryOptions[order.id] || {
+      showOptions: false,
+      deliveryChoice: null,
+      showForm: false,
+      deliveryRequested: false
+    };
     
     return (
      
@@ -167,7 +269,9 @@ const TrackingPage = () => {
                   : order.status === OrderStatus.IN_TRANSIT
                   ? "bg-blue-200 text-blue-800"
                   : order.status === OrderStatus.IN_UB
-                  ? "bg-red-200 text-red-800"
+                  ? "bg-orange-200 text-orange-400"
+                  : order.status === OrderStatus.OUT_FOR_DELIVERY
+                  ? "bg-purple-200 text-purple-800"
                   : "bg-[#ffeab8] text-gray-800"
               }`}
             >
@@ -198,7 +302,7 @@ const TrackingPage = () => {
               <p className="py-3 flex items-center">
                 <Package className="w-5 h-5 mr-2 text-primary" />
                 <span className="font-medium">
-                  Барааны дугаар
+                  Track Number
                 </span>{" "}
                 <span className="bg-green-400 rounded-full px-2 ml-2 text-white">
                   {order.packageId}
@@ -216,7 +320,9 @@ const TrackingPage = () => {
                       : order.status === OrderStatus.IN_TRANSIT
                       ? "bg-blue-200 text-blue-800"
                       : order.status === OrderStatus.IN_UB
-                      ? "bg-red-200 text-red-800"
+                      ? "bg-orange-200 text-orange-400"
+                      : order.status === OrderStatus.OUT_FOR_DELIVERY
+                      ? "bg-purple-200 text-purple-800"
                       : "bg-[#ffeab8] text-gray-800"
                   }`}
                 >
@@ -262,6 +368,171 @@ const TrackingPage = () => {
                 </p>
               )}
             </div>
+
+            {/* Delivery options for IN_UB orders */}
+            {isEligibleForDelivery(order.status) && !orderDeliveryOptions.deliveryRequested && (
+              <div className="mt-4 sm:mt-6 border-t border-gray-200 pt-3 sm:pt-4">
+                <div className="flex justify-between items-center mb-2 sm:mb-3">
+                  <h3 className="text-sm sm:text-md font-semibold text-primary flex items-center">
+                    <Truck className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                    Хүргэлтийн сонголт
+                  </h3>
+                  <Button 
+                    variant={orderDeliveryOptions.showOptions ? "default" : "outline"}
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeliveryOptionToggle(order.id);
+                    }}
+                    className={`text-xs h-7 sm:h-8 px-2 sm:px-3 transition-all duration-300 ${
+                      orderDeliveryOptions.showOptions ? "bg-primary text-white" : "hover:bg-primary/10"
+                    }`}
+                  >
+                    {orderDeliveryOptions.showOptions ? (
+                      <span className="flex items-center">
+                        <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
+                        <span className="hidden xs:inline">Нуух</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
+                        <span className="hidden xs:inline">Харуулах</span>
+                      </span>
+                    )}
+                  </Button>
+                </div>
+                
+                {orderDeliveryOptions.showOptions && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -10 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -10 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="bg-white rounded-lg p-3 sm:p-4 shadow-md border border-gray-100"
+                  >
+                    {!orderDeliveryOptions.showForm ? (
+                      <div className="space-y-3 sm:space-y-4">
+                        <p className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">
+                          Захиалгаа хүлээн авах хэлбэрээ сонгоно уу:
+                        </p>
+                        <RadioGroup 
+                          value={orderDeliveryOptions.deliveryChoice || ""}
+                          onValueChange={(value: string) => 
+                            handleDeliveryChoiceChange(order.id, value as "delivery" | "pickup")
+                          }
+                          className="space-y-2 sm:space-y-3"
+                        >
+                          <div className={`flex items-start space-x-1.5 sm:space-x-2 p-2 sm:p-3 rounded-lg border ${
+                            orderDeliveryOptions.deliveryChoice === "pickup" ? "border-primary bg-primary/5" : "border-gray-200"
+                          } transition-all duration-200 cursor-pointer`}
+                          onClick={() => handleDeliveryChoiceChange(order.id, "pickup")}>
+                            <RadioGroupItem value="pickup" id={`pickup-${order.id}`} className="mt-0.5 sm:mt-1" />
+                            <div className="space-y-0.5 sm:space-y-1">
+                              <Label htmlFor={`pickup-${order.id}`} className="flex items-center cursor-pointer font-medium text-xs sm:text-sm">
+                                <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-gray-600" />
+                                <span>Өөрөө авна</span>
+                              </Label>
+                              <p className="text-xs sm:text-sm text-gray-500 ml-4 sm:ml-6">
+                                Та бидний байршилд ирж захиалгаа авна. <b className="text-primary text-[11px] sm:text-xs">{order.phoneNumber}</b> дугаараар холбогдоно.
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`flex items-start space-x-1.5 sm:space-x-2 p-2 sm:p-3 rounded-lg border ${
+                            orderDeliveryOptions.deliveryChoice === "delivery" ? "border-primary bg-primary/5" : "border-gray-200"
+                          } transition-all duration-200 cursor-pointer`}
+                          onClick={() => handleDeliveryChoiceChange(order.id, "delivery")}>
+                            <RadioGroupItem value="delivery" id={`delivery-${order.id}`} className="mt-0.5 sm:mt-1" />
+                            <div className="space-y-0.5 sm:space-y-1">
+                              <Label htmlFor={`delivery-${order.id}`} className="flex items-center cursor-pointer font-medium text-xs sm:text-sm">
+                                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-primary" />
+                                <span>Хүргүүлж авна</span>
+                              </Label>
+                              <p className="text-xs sm:text-sm text-gray-500 ml-4 sm:ml-6">
+                                Таны хаягаар хүргэлт хийнэ. Хүргэлтийн хаягаа оруулна уу.
+                              </p>
+                            </div>
+                          </div>
+                        </RadioGroup>
+                        
+                        {orderDeliveryOptions.deliveryChoice && (
+                          <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 text-right">
+                            <Button 
+                              onClick={() => {
+                                if (orderDeliveryOptions.deliveryChoice === "delivery") {
+                                  setDeliveryOptions(prev => ({
+                                    ...prev,
+                                    [order.id]: {
+                                      ...prev[order.id],
+                                      showForm: true
+                                    }
+                                  }));
+                                } else {
+                                  // Handle pickup option - can add confirmation dialog or direct action
+                                  toast.success("Захиалгыг өөрөө авах сонголт хийгдлээ");
+                                  handleDeliverySuccess(order.id);
+                                }
+                              }}
+                              className="bg-primary text-white hover:bg-primary/90 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
+                            >
+                              {orderDeliveryOptions.deliveryChoice === "pickup" ? (
+                                <span className="flex items-center">
+                                  <CheckCircle className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                  Баталгаажуулах
+                                </span>
+                              ) : (
+                                <span className="flex items-center">
+                                  <Truck className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                  Үргэлжлүүлэх
+                                </span>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCancelDelivery(order.id)}
+                          className="mb-1 sm:mb-2 -ml-1 sm:-ml-2 text-gray-500 hover:text-primary text-xs sm:text-sm h-7 sm:h-8 px-2"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+                          Буцах
+                        </Button>
+                        <DeliveryForm 
+                          orderId={order.id} 
+                          onSuccess={() => handleDeliverySuccess(order.id)}
+                          onCancel={() => handleCancelDelivery(order.id)}
+                        />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+            )}
+
+            {/* Show success message if delivery was requested */}
+            {orderDeliveryOptions.deliveryRequested && order.status === OrderStatus.OUT_FOR_DELIVERY && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm"
+              >
+                <div className="flex items-center text-green-600">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 text-green-500" />
+                  <p className="font-medium text-xs sm:text-sm">Хүргэлтийн хүсэлт амжилттай илгээгдлээ!</p>
+                </div>
+                <p className="ml-5 sm:ml-7 text-xs sm:text-sm text-green-600 mt-0.5 sm:mt-1">
+                  Таны хүргэлтийн хүсэлт хүлээн авагдсан. Удахгүй танд холбогдох болно.
+                </p>
+              </motion.div>
+            )}
 
             <div className="pt-6">
               <h2 className="text-xl font-bold mb-4 text-primary">
@@ -312,7 +583,7 @@ const TrackingPage = () => {
               Захиалгаа хянах
             </CardTitle>
             <CardDescription className="text-gray-400 text-center">
-              Барааны дугаар эсвэл утасны дугаараар захиалгаа хянана уу.
+              Track Number эсвэл утасны дугаараар захиалгаа хянана уу.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -329,7 +600,7 @@ const TrackingPage = () => {
                   onClick={() => handleTabChange("orderId")}
                 >
                   <Package size={16} className="mr-2" />
-                  Барааны дугаар
+                  Track Number
                 </Button>
                 <Button 
                   variant={searchType === "phone" ? "default" : "outline"}
@@ -350,7 +621,7 @@ const TrackingPage = () => {
                 <div className="relative">
                   <Input
                     type="text"
-                    placeholder="Барааны дугаараа оруулна уу"
+                    placeholder="Track Number"
                     value={orderId}
                     onChange={(e) => setOrderId(e.target.value)}
                     className="bg-gray-100 font-bold rounded-full h-[50px] text-gray-700 placeholder-gray-400 border-gray-300 outline-primary"

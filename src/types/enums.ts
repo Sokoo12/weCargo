@@ -19,3 +19,11 @@ export enum ROLES {
   MODERATOR = "MODERATOR",
   USER = "USER",
 }
+
+export enum DeliveryStatus {
+  REQUESTED = "REQUESTED",
+  SCHEDULED = "SCHEDULED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}

@@ -210,14 +210,14 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold text-gray-100">Ажилтнууд</h2>
-          <div className="flex items-center gap-4">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative w-full sm:w-auto">
               <input
                 type="text"
                 placeholder="Хайх..."
-                className="bg-gray-700 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-gray-700 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={handleSearch}
               />
@@ -225,7 +225,7 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
             </div>
             <Button
               onClick={openAddDialog}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
               disabled={isLoading}
             >
               <UserPlus size={18} className="mr-2" />
@@ -238,132 +238,123 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
+        ) : filteredEmployees.length === 0 ? (
+          <div className="text-center py-16 bg-gray-800/40 rounded-xl border border-gray-700">
+            <AlertCircle size={48} className="mx-auto text-gray-500 mb-4" />
+            <p className="text-xl text-gray-300 mb-2">Ажилтан олдсонгүй</p>
+            <p className="text-gray-400 mb-6">Хайлтын шүүлтүүрийг өөрчлөх эсвэл шинэ ажилтан нэмнэ үү</p>
+            <Button
+              onClick={openAddDialog}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <UserPlus size={18} className="mr-2" />
+              Ажилтан нэмэх
+            </Button>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-gray-700 mt-4">
             <table className="min-w-full divide-y divide-gray-700">
-              <thead>
+              <thead className="bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Нэр
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Имэйл
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Утас
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Үүрэг
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Төлөв
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Бүртгэгдсэн
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Сүүлд нэвтэрсэн
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Үйлдэл
                   </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-700">
-                {filteredEmployees.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
-                      <AlertCircle className="mx-auto mb-2" size={24} />
-                      {searchTerm ? "Хайлтад тохирох ажилтан олдсонгүй" : "Ажилтны мэдээлэл байхгүй байна"}
+                {filteredEmployees.map((employee) => (
+                  <motion.tr
+                    key={employee.id}
+                    className="hover:bg-gray-800/50 transition-colors"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-700 flex items-center justify-center">
+                          <span className="text-lg font-medium text-white">{employee.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="font-medium text-white">{employee.name}</div>
+                          <div className="text-sm text-gray-400">{employee.role === "MANAGER" ? "Менежер" : "Хүргэгч"}</div>
+                        </div>
+                      </div>
                     </td>
-                  </tr>
-                ) : (
-                  filteredEmployees.map((employee) => (
-                    <motion.tr
-                      key={employee.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center text-white font-semibold">
-                              {employee.name.charAt(0).toUpperCase()}
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-100">
-                              {employee.name}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-300">{employee.email}</div>
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-300">
-                          {employee.phoneNumber || "-"}
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          employee.role === "MANAGER" 
-                            ? "bg-purple-800 text-purple-100" 
-                            : "bg-blue-800 text-blue-100"
-                        }`}>
-                          {employee.role === "MANAGER" ? "Менежер" : "Хүргэгч"}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          employee.isActive
-                            ? "bg-green-800 text-green-100"
-                            : "bg-red-800 text-red-100"
-                        }`}>
-                          {employee.isActive ? "Идэвхтэй" : "Идэвхгүй"}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-200">
-                          {moment(employee.joinDate).format('LL')}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {employee.lastLogin 
-                          ? moment(employee.lastLogin).fromNow() 
-                          : "Хэзээ ч нэвтрээгүй"}
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        <div className="flex space-x-2">
-                          <button 
-                            onClick={() => openEditDialog(employee)}
-                            className="text-blue-400 hover:text-blue-300"
-                            disabled={isLoading}
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            onClick={() => openDeleteDialog(employee)}
-                            className="text-red-400 hover:text-red-300"
-                            disabled={isLoading}
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">
+                      {employee.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">
+                      {employee.phoneNumber || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        employee.role === "MANAGER" 
+                          ? "bg-purple-900/40 text-purple-400" 
+                          : "bg-orange-900/40 text-orange-400"
+                      }`}>
+                        {employee.role === "MANAGER" ? "Менежер" : "Хүргэгч"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        employee.isActive 
+                          ? "bg-green-900/40 text-green-400" 
+                          : "bg-red-900/40 text-red-400"
+                      }`}>
+                        {employee.isActive ? "Идэвхтэй" : "Идэвхгүй"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">
+                      {moment(employee.joinDate).format("YYYY-MM-DD")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">
+                      {employee.lastLogin ? moment(employee.lastLogin).fromNow() : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          onClick={() => openEditDialog(employee)}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-gray-700"
+                        >
+                          <Edit className="h-4 w-4 text-blue-400" />
+                        </Button>
+                        <Button
+                          onClick={() => openDeleteDialog(employee)}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-gray-700"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-400" />
+                        </Button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -372,30 +363,26 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
 
       {/* Add Employee Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="bg-gray-800 text-white border-gray-700">
+        <DialogContent className="bg-gray-800 text-gray-100 border-gray-700 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Шинэ ажилтан нэмэх</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Ажилтан нэмэх</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Шинэ ажилтны мэдээллийг оруулна уу
+              Ажилтны мэдээллийг оруулна уу
             </DialogDescription>
           </DialogHeader>
-
           <form onSubmit={handleAddEmployee} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="name">Нэр</Label>
               <Input
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Ажилтны нэр"
                 required
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="email">Имэйл</Label>
               <Input
                 id="email"
@@ -403,14 +390,11 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="email@example.com"
                 required
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="password">Нууц үг</Label>
               <Input
                 id="password"
@@ -418,82 +402,68 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="••••••••"
                 required
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="phoneNumber">Утасны дугаар</Label>
               <Input
                 id="phoneNumber"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                placeholder="99887766"
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="address">Хаяг</Label>
               <Input
                 id="address"
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
-                placeholder="Ажилтны хаяг"
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="role">Үүрэг</Label>
-              <Select 
-                value={formData.role} 
+              <Select
+                value={formData.role}
                 onValueChange={handleRoleChange}
-                disabled={isLoading}
               >
-                <SelectTrigger className="bg-gray-700 border-gray-600">
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
                   <SelectValue placeholder="Үүрэг сонгох" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value={EmployeeRole.MANAGER}>Менежер</SelectItem>
-                  <SelectItem value={EmployeeRole.DELIVERY}>Хүргэгч</SelectItem>
+                <SelectContent className="bg-gray-700 border-gray-600 text-gray-100">
+                  <SelectItem value="MANAGER" className="text-gray-100">Менежер</SelectItem>
+                  <SelectItem value="DELIVERY" className="text-gray-100">Хүргэгч</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             <div className="flex items-center space-x-2">
-              <Switch 
-                id="isActive" 
-                checked={formData.isActive} 
+              <Switch
+                id="isActive"
+                checked={formData.isActive}
                 onCheckedChange={handleStatusChange}
-                disabled={isLoading}
               />
               <Label htmlFor="isActive">Идэвхтэй</Label>
             </div>
-
-            <DialogFooter>
+            <DialogFooter className="mt-6 flex sm:justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                disabled={isLoading}
               >
                 Цуцлах
               </Button>
-              <Button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-700"
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
               >
-                {isLoading ? 'Боловсруулж байна...' : 'Нэмэх'}
+                {isLoading ? "Түр хүлээнэ үү..." : "Нэмэх"}
               </Button>
             </DialogFooter>
           </form>
@@ -502,30 +472,26 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
 
       {/* Edit Employee Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-gray-800 text-white border-gray-700">
+        <DialogContent className="bg-gray-800 text-gray-100 border-gray-700 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ажилтны мэдээлэл засах</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Ажилтны мэдээлэл засах</DialogTitle>
             <DialogDescription className="text-gray-400">
-              {currentEmployee?.name}-н мэдээллийг шинэчлэх
+              {currentEmployee?.name} - {currentEmployee?.email}
             </DialogDescription>
           </DialogHeader>
-
           <form onSubmit={handleUpdateEmployee} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="edit-name">Нэр</Label>
               <Input
                 id="edit-name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Ажилтны нэр"
                 required
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="edit-email">Имэйл</Label>
               <Input
                 id="edit-email"
@@ -533,14 +499,11 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="email@example.com"
                 required
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="edit-password">
                 Нууц үг (хоосон үлдээвэл өөрчлөгдөхгүй)
               </Label>
@@ -550,121 +513,103 @@ const EmployeesList = ({ initialEmployees = [] }: EmployeeListProps) => {
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="••••••••"
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="edit-phoneNumber">Утасны дугаар</Label>
               <Input
                 id="edit-phoneNumber"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                placeholder="99887766"
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="edit-address">Хаяг</Label>
               <Input
                 id="edit-address"
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
-                placeholder="Ажилтны хаяг"
-                className="bg-gray-700 border-gray-600"
-                disabled={isLoading}
+                className="bg-gray-700 border-gray-600 text-gray-100"
               />
             </div>
-
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="edit-role">Үүрэг</Label>
-              <Select 
-                value={formData.role} 
+              <Select
+                value={formData.role}
                 onValueChange={handleRoleChange}
-                disabled={isLoading}
               >
-                <SelectTrigger className="bg-gray-700 border-gray-600">
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
                   <SelectValue placeholder="Үүрэг сонгох" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value={EmployeeRole.MANAGER}>Менежер</SelectItem>
-                  <SelectItem value={EmployeeRole.DELIVERY}>Хүргэгч</SelectItem>
+                <SelectContent className="bg-gray-700 border-gray-600 text-gray-100">
+                  <SelectItem value="MANAGER" className="text-gray-100">Менежер</SelectItem>
+                  <SelectItem value="DELIVERY" className="text-gray-100">Хүргэгч</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             <div className="flex items-center space-x-2">
-              <Switch 
-                id="edit-isActive" 
-                checked={formData.isActive} 
+              <Switch
+                id="edit-isActive"
+                checked={formData.isActive}
                 onCheckedChange={handleStatusChange}
-                disabled={isLoading}
               />
               <Label htmlFor="edit-isActive">Идэвхтэй</Label>
             </div>
-
-            <DialogFooter>
+            <DialogFooter className="mt-6 flex sm:justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                disabled={isLoading}
               >
                 Цуцлах
               </Button>
-              <Button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-700"
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
               >
-                {isLoading ? 'Боловсруулж байна...' : 'Хадгалах'}
+                {isLoading ? "Боловсруулж байна..." : "Хадгалах"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Employee Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-gray-800 text-white border-gray-700">
+        <DialogContent className="bg-gray-800 text-gray-100 border-gray-700 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ажилтан устгах</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Ажилтан устгах</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Та {currentEmployee?.name} нэртэй ажилтныг устгахдаа итгэлтэй байна уу?
+              Та "{currentEmployee?.name}" нэртэй ажилтныг устгахдаа итгэлтэй байна уу?
             </DialogDescription>
           </DialogHeader>
-
-          <div className="bg-red-900 bg-opacity-40 p-4 rounded-md border border-red-700 mb-4">
-            <p className="text-red-200 flex items-center">
-              <AlertCircle className="mr-2" size={18} />
-              Энэ үйлдлийг буцаах боломжгүй.
+          <div className="mt-2 p-4 bg-red-900/20 border border-red-900/30 rounded-md">
+            <p className="text-red-400 text-sm">
+              Энэ үйлдлийг буцаах боломжгүй. Ажилтантай холбоотой бүх мэдээлэл устах болно.
             </p>
           </div>
-
-          <DialogFooter>
+          <DialogFooter className="mt-6 flex sm:justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              disabled={isLoading}
             >
               Цуцлах
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={handleDeleteEmployee}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
               disabled={isLoading}
             >
-              {isLoading ? 'Боловсруулж байна...' : 'Устгах'}
+              {isLoading ? "Устгаж байна..." : "Устгах"}
             </Button>
           </DialogFooter>
         </DialogContent>

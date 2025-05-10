@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { compare } from "bcryptjs";
 
 export async function POST(req: NextRequest) {
+
   try {
     // Get the phone number and password from the request
     let phoneNumber, password;

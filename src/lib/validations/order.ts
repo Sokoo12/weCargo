@@ -18,6 +18,8 @@ export const updateOrderSchema = z.object({
   orderId: z.string().optional(),
   packageId: z.string().optional(),
   phoneNumber: z.string().optional(),
+  size: z.enum(['SMALL', 'MEDIUM', 'LARGE', 'UNDEFINED']).optional(),
+  package_size: z.string().optional(),
   isShipped: z.boolean().optional(),
   isDamaged: z.boolean().optional(),
   damageDescription: z.string().optional().nullable(),

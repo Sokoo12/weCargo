@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { OrderStatus, DeliveryStatus } from '@prisma/client';
-import { Check, Truck, AlertCircle } from 'lucide-react';
+import { OrderStatus } from '@prisma/client';
+import { Check, Truck, AlertCircle, Package } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
-// Mock employee ID for demo purposes
-const DEMO_EMPLOYEE_ID = 'employee-1';
-
 interface Order {
   id: string;
-  packageId: string;
+  packageId?: string;
   phoneNumber?: string;
   status: OrderStatus;
   createdAt: Date;
@@ -39,24 +36,16 @@ interface Delivery {
   district: string;
   apartment?: string;
   notes?: string;
-  deliveryFee?: number;
-  requestedAt: Date;
-  scheduledDate?: Date;
-  completedAt?: Date;
-  status?: DeliveryStatus;
+  deliveryPrice?: number;
+  approvedByAdmin: boolean;
+  deliveryPersonId?: string;
+  status?: string;
   createdAt: Date;
   updatedAt: Date;
   order: Order;
 }
 
-// Mongolian translation mapping
-const statusLabels = {
-  [OrderStatus.OUT_FOR_DELIVERY]: "Хүргэж байгаа",
-  [OrderStatus.DELIVERED]: "Хүргэгдсэн",
-  [OrderStatus.CANCELLED]: "Цуцлагдсан",
-};
-
-export default function DeliveryList() {
+export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -78,7 +67,7 @@ export default function DeliveryList() {
     } catch (error) {
       console.error('Error fetching deliveries:', error);
       toast.error('Error', {
-        description: 'Failed to load delivery list'
+        description: 'Failed to load deliveries'
       });
     } finally {
       setLoading(false);
@@ -103,7 +92,7 @@ export default function DeliveryList() {
         },
         body: JSON.stringify({ 
           status: selectedStatus,
-          note: statusNote
+          note: statusNote 
         }),
       });
 
@@ -113,53 +102,57 @@ export default function DeliveryList() {
       setIsUpdateDialogOpen(false);
       
       toast.success('Status Updated', {
-        description: `Order ${selectedDelivery.order.packageId} status updated to ${statusLabels[selectedStatus] || selectedStatus}`
+        description: `Delivery status updated to ${selectedStatus}`
       });
     } catch (error) {
-      console.error('Error updating order status:', error);
+      console.error('Error updating delivery status:', error);
       toast.error('Error', {
-        description: 'Failed to update order status'
+        description: 'Failed to update delivery status'
       });
     }
   };
 
   const getStatusBadge = (status: OrderStatus) => {
-    const statusMap = {
-      IN_WAREHOUSE: 'bg-gray-100 text-gray-800',
-      IN_TRANSIT: 'bg-blue-100 text-blue-800',
-      IN_UB: 'bg-yellow-100 text-yellow-800',
-      OUT_FOR_DELIVERY: 'bg-purple-100 text-purple-800',
-      DELIVERED: 'bg-green-100 text-green-800',
-      CANCELLED: 'bg-red-100 text-red-800',
-    };
-    
-    return statusMap[status] || 'bg-gray-100 text-gray-800';
+    switch (status) {
+      case OrderStatus.IN_WAREHOUSE:
+        return 'bg-gray-100 text-gray-800';
+      case OrderStatus.IN_TRANSIT:
+        return 'bg-blue-100 text-blue-800';
+      case OrderStatus.IN_UB:
+        return 'bg-yellow-100 text-yellow-800';
+      case OrderStatus.OUT_FOR_DELIVERY:
+        return 'bg-purple-100 text-purple-800';
+      case OrderStatus.DELIVERED:
+        return 'bg-green-100 text-green-800';
+      case OrderStatus.CANCELLED:
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const getNextStatusOptions = (currentStatus: OrderStatus) => {
-    // Available delivery status options for workers
-    return [
-      OrderStatus.OUT_FOR_DELIVERY,
-      OrderStatus.DELIVERED,
-      OrderStatus.CANCELLED
-    ];
-  };
-
-  // Get display label for status (Mongolian or English)
-  const getStatusLabel = (status: OrderStatus) => {
-    return statusLabels[status] || status.replace('_', ' ');
+    switch (currentStatus) {
+      case OrderStatus.IN_UB:
+      case OrderStatus.OUT_FOR_DELIVERY:
+        return [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED];
+      case OrderStatus.DELIVERED:
+        return [OrderStatus.DELIVERED]; // Can't change from delivered
+      default:
+        return [currentStatus];
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Delivery List</h1>
+        <h1 className="text-2xl font-bold">Available Deliveries</h1>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={fetchDeliveries}>
             Refresh
           </Button>
           <Button asChild variant="outline">
-            <Link href="/employee/delivery/history">
+            <Link href="/employee/deliveries/history">
               View History
             </Link>
           </Button>
@@ -168,7 +161,7 @@ export default function DeliveryList() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Active Deliveries</CardTitle>
+          <CardTitle>Deliveries</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -179,10 +172,10 @@ export default function DeliveryList() {
                 <TableRow>
                   <TableHead>Package ID</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Delivery Address</TableHead>
+                  <TableHead>Address</TableHead>
                   <TableHead>District</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Delivery Fee</TableHead>
+                  <TableHead>Price</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -190,22 +183,22 @@ export default function DeliveryList() {
                 {deliveries.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
-                      No active deliveries found
+                      No deliveries available at this time
                     </TableCell>
                   </TableRow>
                 ) : (
                   deliveries.map((delivery) => (
                     <TableRow key={delivery.id}>
-                      <TableCell>{delivery.order.packageId}</TableCell>
+                      <TableCell>{delivery.order.packageId || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge className={getStatusBadge(delivery.order.status)}>
-                          {getStatusLabel(delivery.order.status)}
+                          {delivery.order.status.replace('_', ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell>{delivery.address || 'Not specified'}</TableCell>
-                      <TableCell>{delivery.district || 'Not specified'}</TableCell>
+                      <TableCell>{delivery.address}</TableCell>
+                      <TableCell>{delivery.district}</TableCell>
                       <TableCell>{delivery.order.phoneNumber || 'N/A'}</TableCell>
-                      <TableCell>{delivery.deliveryFee ? `${delivery.deliveryFee} ₮` : 'Not set'}</TableCell>
+                      <TableCell>{delivery.deliveryPrice ? `${delivery.deliveryPrice} ₮` : 'Not set'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(delivery)}>
                           Update Status
@@ -226,7 +219,7 @@ export default function DeliveryList() {
           <DialogHeader>
             <DialogTitle>Update Delivery Status</DialogTitle>
             <DialogDescription>
-              Change the status of package {selectedDelivery?.order.packageId}
+              Change the status of delivery to track progress
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -235,7 +228,7 @@ export default function DeliveryList() {
               <div className="py-2">
                 {selectedDelivery && (
                   <Badge className={getStatusBadge(selectedDelivery.order.status)}>
-                    {getStatusLabel(selectedDelivery.order.status)}
+                    {selectedDelivery.order.status.replace('_', ' ')}
                   </Badge>
                 )}
               </div>
@@ -250,9 +243,9 @@ export default function DeliveryList() {
                   <SelectValue placeholder="Select a new status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getNextStatusOptions(selectedDelivery?.order.status || OrderStatus.IN_UB).map((status) => (
+                  {selectedDelivery && getNextStatusOptions(selectedDelivery.order.status).map((status) => (
                     <SelectItem key={status} value={status}>
-                      {getStatusLabel(status)}
+                      {status.replace('_', ' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>

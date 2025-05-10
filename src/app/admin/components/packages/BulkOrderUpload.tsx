@@ -70,8 +70,8 @@ interface OrderBody {
 // Sample Excel file format template
 const excelTemplate = [
   {
-    orderId: "ORD123",
-    packageId: "PKG123",
+    orderId: "ORD123", // Required - must be unique
+    packageId: "PKG123", // Required - must be unique
     phoneNumber: "99112233",
     status: "IN_WAREHOUSE",
     isShipped: "TRUE",
@@ -175,8 +175,15 @@ const BulkOrderUpload = () => {
             // Map Excel data to OrderInput
             const mappedOrders: OrderBody[] = json.map((row, index) => {
               // Generate defaults for required fields
-              const orderId = row.orderId || `ORD-${Math.random().toString(36).substring(7)}`;
-              const packageId = row.packageId || `PKG-${Math.random().toString(36).substring(7)}`;
+              const orderId = row.orderId;
+              const packageId = row.packageId;
+              
+              // Skip rows with missing required fields
+              if (!orderId || !packageId) {
+                console.warn(`Skipping row ${index + 1}: Missing orderId or packageId`);
+                return null;
+              }
+              
               const isShipped = parseBoolean(row.isShipped);
               
               const orderBody: OrderBody = {
@@ -205,7 +212,12 @@ const BulkOrderUpload = () => {
               }
 
               return orderBody;
-            });
+            }).filter((order): order is OrderBody => order !== null);
+
+            if (mappedOrders.length === 0) {
+              setError("Захиалгын дугаар (orderId) болон барааны дугаар (packageId) заавал оруулах шаардлагатай.");
+              return;
+            }
 
             setOrders(mappedOrders);
           } catch (error) {

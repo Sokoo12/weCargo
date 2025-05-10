@@ -146,6 +146,7 @@ function Header() {
               </div>
             ) : (
               <Link href="/sign-in">
+                {/* Sign-in button for desktop header - Displayed when user is not authenticated */}
                 <button className="flex items-center gap-1 text-primary font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-all">
                   <LogIn size={18} />
                   <span>Sign In</span>

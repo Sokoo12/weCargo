@@ -31,7 +31,7 @@ interface Order {
 // Helper to make fetch calls without the custom override
 const fetchWithoutOverride = async (url: string, options = {}) => {
   // Store the original fetch if it exists
-  const originalFetch = window.originalFetch || window.fetch;
+  const originalFetch = (window as any).originalFetch || window.fetch;
   
   try {
     // Use the original fetch function

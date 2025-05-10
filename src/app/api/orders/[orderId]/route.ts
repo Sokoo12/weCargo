@@ -44,7 +44,8 @@ export async function GET(
   context: { params: { orderId: string } }
 ) {
   try {
-    const { orderId } = context.params;
+    const params = await context.params;
+    const orderId = params.orderId;
     
     if (!orderId) {
       throw new ApiError("Order ID is required", 400);
@@ -116,7 +117,8 @@ export async function DELETE(
   context: { params: { orderId: string } }
 ) {
   try {
-    const { orderId } = context.params;
+    const params = await context.params;
+    const orderId = params.orderId;
     
     if (!orderId) {
       throw new ApiError("Order ID is required", 400);
@@ -177,7 +179,8 @@ export async function PUT(
   context: { params: { orderId: string } }
 ) {
   try {
-    const { orderId } = context.params;
+    const params = await context.params;
+    const orderId = params.orderId;
     
     if (!orderId) {
       throw new ApiError("Order ID is required", 400);
@@ -200,6 +203,8 @@ export async function PUT(
       orderId: newOrderId,
       packageId,
       phoneNumber,
+      size,
+      package_size: packageSize,
       isShipped,
       isDamaged,
       damageDescription,
@@ -238,6 +243,8 @@ export async function PUT(
         orderId: newOrderId,
         packageId,
         phoneNumber,
+        size,
+        package_size: packageSize,
         isShipped,
         isDamaged: isDamaged ?? false,
         damageDescription: isDamaged ? damageDescription : null,
@@ -322,7 +329,8 @@ export async function PATCH(
   context: { params: { orderId: string } }
 ) {
   try {
-    const { orderId } = context.params;
+    const params = await context.params;
+    const orderId = params.orderId;
     
     if (!orderId) {
       throw new ApiError("Order ID is required", 400);

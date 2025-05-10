@@ -176,10 +176,11 @@ function MobileNav() {
             ) : (
               <Link
                 href="/sign-in"
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition duration-200"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg  transition duration-200"
               >
-                <User size={18} />
-                <span className="font-medium">Нэвтрэх</span>
+                {/* Sign-in button for desktop header - Displayed when user is not authenticated */}
+                {/* <User size={18} /> */}
+                {/* <span className="font-medium">Нэвтрэх</span> */}
               </Link>
             )}
           </nav>
@@ -299,6 +300,7 @@ function MobileNav() {
               href="/sign-in"
               className="w-full h-full"
             >
+              {/* Sign-in button for unauthenticated users - Shows in the mobile navigation bar bottom menu */}
               <div className={`h-full flex flex-col items-center justify-center transition duration-200 ${pathname === '/sign-in' ? "text-primary" : "text-gray-500"}`}>
                 <div className="relative">
                   {pathname === '/sign-in' && (

@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   UserCircle,
+  Truck,
 } from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -36,6 +37,12 @@ const SIDEBAR_ITEMS = [
     icon: FileText,
     color: "#F97316",
     href: "/admin/orders-details",
+  },
+  { 
+    name: "Хүргэлтүүд", 
+    icon: Truck, 
+    color: "#10B981", 
+    href: "/admin/deliveries" 
   },
   { name: "Ажилтан", icon: Users, color: "#EC4899", href: "/admin/staff" },
 

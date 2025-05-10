@@ -1,4 +1,4 @@
-import { OrderStatus } from "./enums";
+import { OrderStatus, OrderSize } from "./enums";
 
 export interface StatusHistoryItem {
   id: string;
@@ -25,6 +25,8 @@ export interface Order {
   orderId: string;
   packageId?: string;
   phoneNumber?: string;
+  size?: OrderSize;
+  package_size?: string;
   isShipped: boolean;
   isDamaged: boolean;
   damageDescription?: string | null;
@@ -39,6 +41,8 @@ export interface OrderUpdateData {
   orderId?: string;
   packageId?: string;
   phoneNumber?: string;
+  size?: OrderSize;
+  package_size?: string;
   isShipped?: boolean;
   isDamaged?: boolean;
   damageDescription?: string | null;

@@ -68,6 +68,9 @@ export const config = {
     '/api/health',
     '/api/debug/auth',
     
+    // Allow phone search endpoint
+    '/api/orders/phone/:path*',
+    
     // Optimize the matcher pattern to be more specific
     '/(dashboard|profile|orders|sign-in|sign-up|forgot-password|admin|employee)/:path*',
   ],

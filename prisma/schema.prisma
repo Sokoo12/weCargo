@@ -44,6 +44,7 @@ model Order {
   packageId       String          @unique
   phoneNumber     String?
   size            OrderSize?      // Made optional for migration
+  package_size    String?         // Additional field for custom package size details
   status          OrderStatus?    // Made optional for migration
   isShipped       Boolean         @default(false)
   isDamaged       Boolean         @default(false)  // New field for damaged items
@@ -52,6 +53,7 @@ model Order {
   createdAt       DateTime        @default(now())
   deliveryCost    Float?
   orderDetails    OrderDetails?
+  delivery        OrderDelivery?  // New relation to OrderDelivery
 }
 
 model OrderDetails {
@@ -97,6 +99,23 @@ model Employee {
   statusUpdates StatusHistory[] @relation("EmployeeStatusUpdates")
 }
 
+// New model for order delivery information
+model OrderDelivery {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String    @unique @db.ObjectId
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  address         String
+  district        String
+  deliveryFee     Float?    // Fee to be set by admin
+  requestedAt     DateTime  @default(now())
+  scheduledDate   DateTime?
+  completedAt     DateTime?
+  status          DeliveryStatus @default(REQUESTED)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 enum OrderSize {
   LARGE
   MEDIUM
@@ -116,4 +135,12 @@ enum OrderStatus {
 enum EmployeeRole {
   MANAGER
   DELIVERY
+}
+
+enum DeliveryStatus {
+  REQUESTED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }

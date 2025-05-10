@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import PackageDeleteModal from "./PackageDeleteModal";
-import { OrderStatus } from "@/types/enums";
+import { OrderStatus, OrderSize } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 import StatusChangeModal from "./StatusChangeModal";
 import OrderDetailsModal from "./OrderDetailsModal";
@@ -69,6 +69,20 @@ const getStatusColor = (status: OrderStatus) => {
   }
 };
 
+const translateSize = (size: OrderSize): string => {
+  switch (size) {
+    case OrderSize.SMALL:
+      return 'Жижиг';
+    case OrderSize.MEDIUM:
+      return 'Дунд';
+    case OrderSize.LARGE:
+      return 'Том';
+    case OrderSize.UNDEFINED:
+    default:
+      return 'Тодорхойгүй';
+  }
+};
+
 const PackagesList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -109,7 +123,7 @@ const PackagesList = () => {
     
     // Check status from direct status field, then fallback to history
     const currentStatus = order.status || 
-      (order.statusHistory?.length > 0 && order.statusHistory[order.statusHistory.length - 1].status);
+      (order.statusHistory && order.statusHistory.length > 0 && order.statusHistory[order.statusHistory.length - 1].status);
     
     const matchesStatus = filterStatus === null ? true : 
       currentStatus === filterStatus;
@@ -160,7 +174,7 @@ const PackagesList = () => {
       return order.status;
     }
     // Fallback to status history
-    if (order.statusHistory?.length > 0) {
+    if (order.statusHistory && order.statusHistory.length > 0) {
       return order.statusHistory[order.statusHistory.length - 1].status;
     }
     return OrderStatus.IN_WAREHOUSE;
@@ -208,9 +222,10 @@ const PackagesList = () => {
         <table className="w-full">
           <thead>
             <tr className="text-left text-gray-400 border-b border-gray-700">
-              <th className="pb-3">Захиалгын дугаарi</th>
-              <th className="pb-3">Ачааны дугаар(Track Number)</th>
+              <th className="pb-3">Захиалгын дугаар</th>
+              <th className="pb-3">Track Number</th>
               <th className="pb-3">Утасны дугаар</th>
+              <th className="pb-3">Хэмжээ</th>
               <th className="pb-3">Төлөв</th>
               <th className="pb-3">Ачигдсан эсэх</th>
               <th className="pb-3">Эвдрэлтэй эсэх</th>
@@ -236,6 +251,12 @@ const PackagesList = () => {
                 <td className="py-4">
                   <span className="text-gray-300">
                     {order.phoneNumber || 'N/A'}
+                  </span>
+                </td>
+                <td className="py-4">
+                  <span className="text-gray-300">
+                    {order.size ? translateSize(order.size) : ''} 
+                    {order.package_size ? `(${order.package_size})` : order.size ? '' : 'N/A'}
                   </span>
                 </td>
                 <td className="py-4">
@@ -292,7 +313,7 @@ const PackagesList = () => {
                 <td className="py-4">
                   <div className="flex gap-2">
                     <OrderForm updateMode={true} orderId={order.id} />
-                    <PackageDeleteModal orderId={order.id} packageId={order.packageId} />
+                    <PackageDeleteModal orderId={order.id} packageId={order.packageId || ''} />
                   </div>
                 </td>
               </tr>
@@ -315,7 +336,7 @@ const PackagesList = () => {
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
           orderDetails={selectedOrder.orderDetails || null}
-          packageId={selectedOrder.packageId}
+          packageId={selectedOrder.packageId || ''}
         />
       )}
 
@@ -324,7 +345,7 @@ const PackagesList = () => {
           isOpen={isHistoryModalOpen}
           onClose={() => setIsHistoryModalOpen(false)}
           statusHistory={selectedOrder.statusHistory || []}
-          packageId={selectedOrder.packageId}
+          packageId={selectedOrder.packageId || ''}
         />
       )}
     </motion.div>

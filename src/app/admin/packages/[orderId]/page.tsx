@@ -165,7 +165,7 @@ const OrderDetailPage = () => {
             <div className="mt-2 space-y-2">
               {order.statusHistory.map((history, index) => (
                 <div key={index} className="flex items-center">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                  <div className="w-4 h-4 bg-blue-500 rounded-full mr-2 "></div>
                   <p>
                     {translateStatus(history.status)} -{" "}
                     {moment(history.timestamp).format("YYYY-MM-DD HH:mm")}{" "}
