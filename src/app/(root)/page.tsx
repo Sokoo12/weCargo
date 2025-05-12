@@ -35,6 +35,7 @@ import DeliveryForm from "@/components/DeliveryForm";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-hot-toast";
+import { fetchApi } from "@/lib/api";
 
 interface ExpandedOrdersState {
   [key: string]: boolean;
@@ -79,12 +80,20 @@ const TrackingPage = () => {
   };
 
   const handleTrackOrder = async () => {
-    if (searchType === "orderId" && !orderId) {
-      setError("Track Number оруулна уу.");
-      return;
-    }
-
-    if (searchType === "phone") {
+    // Validation logic
+    if (searchType === "orderId") {
+      // Validate order ID
+      if (!orderId) {
+        setError("Захиалгын ID оруулна уу.");
+        return;
+      }
+    } else {
+      // Validate phone number
+      if (!phoneNumber) {
+        setError("Утасны дугаар оруулна уу.");
+        return;
+      }
+      
       const phoneError = validatePhoneNumber(phoneNumber);
       if (phoneError) {
         setError(phoneError);
@@ -99,32 +108,11 @@ const TrackingPage = () => {
     setDeliveryOptions({});
 
     try {
-      let response;
-      const searchId = searchType === "orderId" ? orderId : phoneNumber;
       const endpoint = searchType === "orderId" 
         ? `/api/orders/${orderId}` 
         : `/api/orders/phone/${phoneNumber}`;
       
-      response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.status === 404) {
-        throw new Error(
-          searchType === "orderId"
-            ? "Захиалга олдсонгүй. Track Number шалгана уу."
-            : "Утасны дугаараар захиалга олдсонгүй. Дугаараа шалгана уу."
-        );
-      } else if (response.status === 405) {
-        throw new Error("API endpoint method not allowed. Please check server implementation.");
-      } else if (!response.ok) {
-        throw new Error("Системийн алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу.");
-      }
-
-      const data = await response.json();
+      const data = await fetchApi<Order | Order[]>(endpoint);
       
       // Initialize expanded state for the first order if we received multiple orders
       if (Array.isArray(data) && data.length > 0) {
@@ -433,7 +421,7 @@ const TrackingPage = () => {
                                 <span>Өөрөө авна</span>
                               </Label>
                               <p className="text-xs sm:text-sm text-gray-500 ml-4 sm:ml-6">
-                                Та бидний байршилд ирж захиалгаа авна. <b className="text-primary text-[11px] sm:text-xs">{order.phoneNumber}</b> дугаараар холбогдоно.
+                                Та бидний байршилд ирж захиалгаа авна уу. <b className="text-primary text-[11px] sm:text-xs">90021937</b> дугаараар холбогдоорой.
                               </p>
                             </div>
                           </div>

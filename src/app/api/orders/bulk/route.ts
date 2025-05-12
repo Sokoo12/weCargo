@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const existingPackages = await db.order.findMany({
       where: {
         packageId: {
-          in: packageIds
+          in: packageIds.map(id => String(id))
         }
       },
       select: { packageId: true }
@@ -93,8 +93,8 @@ export async function POST(request: Request) {
         const validStatus = mapStatusToPrisma(orderData.status);
         
         const orderCreateData: any = {
-          orderId: orderData.orderId,
-          packageId: orderData.packageId,
+          orderId: String(orderData.orderId),
+          packageId: String(orderData.packageId),
           phoneNumber: orderData.phoneNumber,
           isShipped: orderData.isShipped,
           isDamaged: orderData.isDamaged || false,

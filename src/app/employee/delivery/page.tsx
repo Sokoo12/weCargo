@@ -50,10 +50,13 @@ interface Delivery {
 }
 
 // Mongolian translation mapping
-const statusLabels = {
+const statusLabels: Record<OrderStatus, string> = {
   [OrderStatus.OUT_FOR_DELIVERY]: "Хүргэж байгаа",
   [OrderStatus.DELIVERED]: "Хүргэгдсэн",
   [OrderStatus.CANCELLED]: "Цуцлагдсан",
+  [OrderStatus.IN_WAREHOUSE]: "Агуулахад байгаа",
+  [OrderStatus.IN_TRANSIT]: "Тээвэрлэж байгаа",
+  [OrderStatus.IN_UB]: "Улаанбаатарт байгаа",
 };
 
 export default function DeliveryList() {
@@ -152,13 +155,13 @@ export default function DeliveryList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Delivery List</h1>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={fetchDeliveries}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold">Delivery List</h1>
+        <div className="flex flex-wrap w-full sm:w-auto gap-2">
+          <Button variant="outline" onClick={fetchDeliveries} className="flex-1 sm:flex-none">
             Refresh
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="flex-1 sm:flex-none">
             <Link href="/employee/delivery/history">
               View History
             </Link>
@@ -170,59 +173,122 @@ export default function DeliveryList() {
         <CardHeader>
           <CardTitle>Active Deliveries</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 sm:px-6">
           {loading ? (
             <div className="flex justify-center py-8">Loading deliveries...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Package ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Delivery Address</TableHead>
-                  <TableHead>District</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Delivery Fee</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deliveries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      No active deliveries found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>{delivery.order.packageId}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadge(delivery.order.status)}>
-                          {getStatusLabel(delivery.order.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{delivery.address || 'Not specified'}</TableCell>
-                      <TableCell>{delivery.district || 'Not specified'}</TableCell>
-                      <TableCell>{delivery.order.phoneNumber || 'N/A'}</TableCell>
-                      <TableCell>{delivery.deliveryFee ? `${delivery.deliveryFee} ₮` : 'Not set'}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(delivery)}>
-                          Update Status
-                        </Button>
-                      </TableCell>
+            <>
+              {/* Desktop table view */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">Package ID</TableHead>
+                      <TableHead className="whitespace-nowrap">Status</TableHead>
+                      <TableHead className="whitespace-nowrap">Address</TableHead>
+                      <TableHead className="whitespace-nowrap">District</TableHead>
+                      <TableHead className="whitespace-nowrap">Phone</TableHead>
+                      <TableHead className="whitespace-nowrap">Fee</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                     </TableRow>
-                  ))
+                  </TableHeader>
+                  <TableBody>
+                    {deliveries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          No active deliveries found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      deliveries.map((delivery) => (
+                        <TableRow key={delivery.id}>
+                          <TableCell className="font-medium whitespace-nowrap">{delivery.order.packageId}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusBadge(delivery.order.status)}>
+                              {getStatusLabel(delivery.order.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[150px] sm:max-w-[200px] truncate">{delivery.address || 'Not specified'}</TableCell>
+                          <TableCell className="whitespace-nowrap">{delivery.district || 'Not specified'}</TableCell>
+                          <TableCell className="whitespace-nowrap">{delivery.order.phoneNumber || 'N/A'}</TableCell>
+                          <TableCell className="whitespace-nowrap">{delivery.deliveryFee ? `${delivery.deliveryFee} ₮` : 'Not set'}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(delivery)} className="w-full sm:w-auto">
+                              Update Status
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile card view */}
+              <div className="sm:hidden px-4">
+                {deliveries.length === 0 ? (
+                  <div className="text-center py-8">
+                    No active deliveries found
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deliveries.map((delivery) => (
+                      <div 
+                        key={delivery.id} 
+                        className="bg-white border rounded-lg shadow-sm p-4 space-y-3"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-xs text-gray-500">Package ID</span>
+                            <p className="font-medium">{delivery.order.packageId}</p>
+                          </div>
+                          <Badge className={getStatusBadge(delivery.order.status)}>
+                            {getStatusLabel(delivery.order.status)}
+                          </Badge>
+                        </div>
+                        
+                        <div>
+                          <span className="text-xs text-gray-500">Address</span>
+                          <p className="text-sm">{delivery.address || 'Not specified'}</p>
+                        </div>
+                        
+                        <div className="flex justify-between">
+                          <div>
+                            <span className="text-xs text-gray-500">District</span>
+                            <p className="text-sm">{delivery.district || 'Not specified'}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-gray-500">Phone</span>
+                            <p className="text-sm">{delivery.order.phoneNumber || 'N/A'}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-2">
+                          <div>
+                            <span className="text-xs text-gray-500">Fee</span>
+                            <p className="font-medium">{delivery.deliveryFee ? `${delivery.deliveryFee} ₮` : 'Not set'}</p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleUpdateStatus(delivery)}
+                          >
+                            Update Status
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
       
       {/* Update Status Dialog */}
       <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Update Delivery Status</DialogTitle>
             <DialogDescription>
@@ -268,13 +334,14 @@ export default function DeliveryList() {
               />
             </div>
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>
+          <DialogFooter className="mt-4 flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)} className="w-full sm:w-auto order-1 sm:order-none">
               Cancel
             </Button>
             <Button 
               onClick={submitStatusUpdate}
               disabled={!selectedStatus || selectedStatus === selectedDelivery?.order.status}
+              className="w-full sm:w-auto order-0 sm:order-none"
             >
               Update Status
             </Button>

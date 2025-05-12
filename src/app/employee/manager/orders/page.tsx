@@ -79,7 +79,7 @@ export default function ManagerOrdersPage() {
   // Define fetchOrders before using it in useQuery
   const fetchOrders = async () => {
     try {
-      const response = await fetch('/api/orders');
+      const response = await fetch('/api/orders?manager=true');
       if (!response.ok) throw new Error('Failed to fetch orders');
       const data = await response.json();
       

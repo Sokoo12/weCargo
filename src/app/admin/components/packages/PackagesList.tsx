@@ -35,15 +35,23 @@ declare global {
 const fetchOrders = async () => {
   try {
     console.log("Fetching orders from /api/orders");
-    const response = await fetch("/api/orders");
+    // Get the admin token from localStorage
+    const token = localStorage.getItem("adminToken");
+
+    const response = await fetch("/api/orders?admin=true", {
+      headers: token ? {
+        Authorization: `Bearer ${token}`
+      } : {}
+    });
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Failed to fetch orders:", response.status, errorData);
       throw new Error(`Failed to fetch orders: ${response.status}`);
     }
     const data = await response.json();
-    console.log("Orders received:", data.length, "First order status:", data[0]?.status);
-    return data;
+    console.log("Orders received:", data.orders ? data.orders.length : data.length, "First order status:", data.orders ? data.orders[0]?.status : data[0]?.status);
+    return data.orders || data;
   } catch (error) {
     console.error("Error in fetchOrders:", error);
     throw error;

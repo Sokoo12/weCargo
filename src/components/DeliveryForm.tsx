@@ -116,15 +116,29 @@ const DeliveryForm = ({ orderId, onSuccess, onCancel }: DeliveryFormProps) => {
         body: JSON.stringify(payload),
       });
       
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error("Хүргэлтийн хүсэлт илгээх үед алдаа гарлаа");
+        let errorMessage = "Хүргэлтийн хүсэлт илгээх үед алдаа гарлаа";
+        
+        if (data && data.error) {
+          if (data.error === "Order is not eligible for delivery at this time") {
+            errorMessage = "Захиалга хүргэлтэд бэлэн болоогүй байна";
+          } else if (data.error === "Order not found") {
+            errorMessage = "Захиалга олдсонгүй";
+          } else {
+            errorMessage = data.error;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
       
       toast.success("Хүргэлтийн хүсэлт амжилттай илгээгдлээ!");
       onSuccess();
     } catch (error) {
       console.error("Delivery request error:", error);
-      toast.error("Хүргэлтийн хүсэлт илгээх үед алдаа гарлаа");
+      toast.error(error instanceof Error ? error.message : "Хүргэлтийн хүсэлт илгээх үед алдаа гарлаа");
     } finally {
       setLoading(false);
     }

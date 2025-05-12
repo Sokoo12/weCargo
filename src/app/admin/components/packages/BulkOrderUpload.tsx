@@ -187,8 +187,8 @@ const BulkOrderUpload = () => {
               const isShipped = parseBoolean(row.isShipped);
               
               const orderBody: OrderBody = {
-                orderId,
-                packageId,
+                orderId: String(orderId),
+                packageId: String(packageId),
                 phoneNumber: row.phoneNumber || undefined,
                 isShipped,
                 isDamaged: parseBoolean(row.isDamaged),

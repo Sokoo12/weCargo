@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { OrderStatus } from "@/types/enums";
+import { OrderStatus, DeliveryStatus } from "@/types/enums";
 
 // POST request to create a new delivery request
 export async function POST(req: NextRequest) {
@@ -27,37 +27,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure order is in the correct status (IN_UB)
-    if (order.status !== OrderStatus.IN_UB) {
+    // Ensure order is in the correct status (IN_UB) if not already out for delivery
+    if (order.status !== OrderStatus.IN_UB && order.status !== OrderStatus.OUT_FOR_DELIVERY) {
       return NextResponse.json(
         { error: "Order is not eligible for delivery at this time" },
         { status: 400 }
       );
     }
 
-    // Create the delivery request
-    const deliveryRequest = await prisma.orderDelivery.create({
-      data: {
-        orderId: orderId,
-        address,
-        district,
-        notes,
-      },
+    // Check if delivery request already exists
+    const existingDelivery = await prisma.orderDelivery.findUnique({
+      where: { orderId: orderId },
     });
 
-    // Update order status to show it's going for delivery
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.OUT_FOR_DELIVERY },
-    });
+    let deliveryRequest;
 
-    // Add status history entry
-    await prisma.statusHistory.create({
-      data: {
-        orderId: orderId,
-        status: OrderStatus.OUT_FOR_DELIVERY,
-      },
-    });
+    if (existingDelivery) {
+      // Update existing delivery request
+      deliveryRequest = await prisma.orderDelivery.update({
+        where: { id: existingDelivery.id },
+        data: {
+          address,
+          district,
+          notes,
+          status: DeliveryStatus.REQUESTED,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new delivery request
+      deliveryRequest = await prisma.orderDelivery.create({
+        data: {
+          orderId: orderId,
+          address,
+          district,
+          notes,
+        },
+      });
+    }
+
+    // Only update order status if it's not already OUT_FOR_DELIVERY
+    if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+      // Update order status to show it's going for delivery
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.OUT_FOR_DELIVERY },
+      });
+
+      // Add status history entry
+      await prisma.statusHistory.create({
+        data: {
+          orderId: orderId,
+          status: OrderStatus.OUT_FOR_DELIVERY,
+        },
+      });
+    }
 
     return NextResponse.json(deliveryRequest, { status: 201 });
   } catch (error) {

@@ -125,6 +125,7 @@ export async function GET(request: Request) {
     const orderId = searchParams.get('orderId');
     const phoneNumber = searchParams.get('phoneNumber');
     const isAdmin = searchParams.get('admin') === 'true';
+    const isManager = searchParams.get('manager') === 'true';
 
     // If this is an admin request, return all orders
     if (isAdmin) {
@@ -199,6 +200,34 @@ export async function GET(request: Request) {
           pages: Math.ceil(totalCount / limit)
         }
       });
+    }
+
+    // If this is a manager request, return all orders for manager view
+    if (isManager) {
+      logger.info('Manager request: Fetching all orders for manager view');
+      
+      const orders = await db.order.findMany({
+        include: {
+          statusHistory: true,
+          orderDetails: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      
+      logger.info(`Found ${orders.length} orders for manager request`);
+      
+      // Sort status history for each order
+      orders.forEach(order => {
+        if (order.statusHistory && Array.isArray(order.statusHistory)) {
+          order.statusHistory.sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        }
+      });
+      
+      return NextResponse.json(orders);
     }
 
     // Check that at least one search parameter is provided

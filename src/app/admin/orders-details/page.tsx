@@ -14,14 +14,22 @@ import BulkOrderUpload from "../components/packages/BulkOrderUpload";
 const fetchOrdersWithDetails = async () => {
   try {
     console.log("Fetching orders with details");
-    const response = await fetch("/api/orders");
+    // Get the admin token from localStorage
+    const token = localStorage.getItem("adminToken");
+
+    const response = await fetch("/api/orders?admin=true", {
+      headers: token ? {
+        Authorization: `Bearer ${token}`
+      } : {}
+    });
+    
     if (!response.ok) {
       throw new Error(`Failed to fetch orders: ${response.status}`);
     }
     const data = await response.json();
     
     // Filter orders that have orderDetails
-    const ordersWithDetails = data.filter((order: Order) => 
+    const ordersWithDetails = (data.orders || data).filter((order: Order) => 
       order.isShipped && order.orderDetails
     );
     
@@ -58,7 +66,7 @@ const OrderDetailsPage = () => {
   const handleViewDetails = (order: Order) => {
     if (order.orderDetails) {
       setSelectedOrderDetails(order.orderDetails);
-      setSelectedPackageId(order.packageId);
+      setSelectedPackageId(order.packageId || "");
       setIsDetailsModalOpen(true);
     }
   };
@@ -93,11 +101,11 @@ const OrderDetailsPage = () => {
         details.shippedQuantity,
         details.largeItemQuantity,
         details.smallItemQuantity,
-        details.priceRMB,
-        details.priceTonggur,
+        details.priceRMB || 0,
+        details.priceTonggur || 0,
         details.deliveryAvailable ? "Yes" : "No",
         details.comments ? `"${details.comments.replace(/"/g, '""')}"` : "",
-        new Date(details.createdAt).toLocaleDateString()
+        new Date(order.createdAt || new Date()).toLocaleDateString()
       ].join(",");
     });
 
@@ -195,15 +203,15 @@ const OrderDetailsPage = () => {
                   <td className="py-4 text-gray-300">{order.orderDetails?.shippedQuantity}</td>
                   <td className="py-4 text-gray-300">{order.orderDetails?.largeItemQuantity}</td>
                   <td className="py-4 text-gray-300">{order.orderDetails?.smallItemQuantity}</td>
-                  <td className="py-4 text-gray-300">{order.orderDetails?.priceRMB.toLocaleString()}</td>
-                  <td className="py-4 text-gray-300">{order.orderDetails?.priceTonggur.toLocaleString()}</td>
+                  <td className="py-4 text-gray-300">{order.orderDetails?.priceRMB?.toLocaleString() || '0'}</td>
+                  <td className="py-4 text-gray-300">{order.orderDetails?.priceTonggur?.toLocaleString() || '0'}</td>
                   <td className="py-4">
                     <span className={order.orderDetails?.deliveryAvailable ? "text-green-400" : "text-yellow-400"}>
                       {order.orderDetails?.deliveryAvailable ? "Тийм" : "Үгүй"}
                     </span>
                   </td>
                   <td className="py-4 text-gray-300">
-                    {order.orderDetails?.createdAt ? new Date(order.orderDetails.createdAt).toLocaleDateString() : 'N/A'}
+                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="py-4">
                     <button

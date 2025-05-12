@@ -111,7 +111,7 @@ export default function DeliveryProfilePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Profile</h1>
+      <h1 className="text-xl sm:text-2xl font-bold">Profile</h1>
 
       <Card>
         <CardHeader>
@@ -120,7 +120,7 @@ export default function DeliveryProfilePage() {
             Your personal and contact information
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           {isEditing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -153,51 +153,51 @@ export default function DeliveryProfilePage() {
                 />
               </div>
               
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4">
+                <Button variant="outline" type="button" onClick={() => setIsEditing(false)} className="w-full sm:w-auto order-1 sm:order-none">
                   Cancel
                 </Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" className="w-full sm:w-auto order-0 sm:order-none">Save Changes</Button>
               </div>
             </form>
           ) : (
             <div className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <User className="h-5 w-5 text-gray-500" />
-                  <div>
+                  <div className="sm:flex-1">
                     <p className="text-sm font-medium text-gray-500">Full Name</p>
                     <p className="text-lg">{employee?.name}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <Mail className="h-5 w-5 text-gray-500" />
-                  <div>
+                  <div className="sm:flex-1">
                     <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-lg">{employee?.email}</p>
+                    <p className="text-lg break-all">{employee?.email}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <Phone className="h-5 w-5 text-gray-500" />
-                  <div>
+                  <div className="sm:flex-1">
                     <p className="text-sm font-medium text-gray-500">Phone</p>
                     <p className="text-lg">{employee?.phoneNumber || 'Not provided'}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <MapPin className="h-5 w-5 text-gray-500" />
-                  <div>
+                  <div className="sm:flex-1">
                     <p className="text-sm font-medium text-gray-500">Address</p>
                     <p className="text-lg">{employee?.address || 'Not provided'}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <Calendar className="h-5 w-5 text-gray-500" />
-                  <div>
+                  <div className="sm:flex-1">
                     <p className="text-sm font-medium text-gray-500">Joined</p>
                     <p className="text-lg">{employee?.joinDate ? formatDate(employee.joinDate) : 'Unknown'}</p>
                   </div>
@@ -205,7 +205,7 @@ export default function DeliveryProfilePage() {
               </div>
               
               <div className="pt-4">
-                <Button onClick={() => setIsEditing(true)}>
+                <Button onClick={() => setIsEditing(true)} className="w-full sm:w-auto">
                   Edit Profile
                 </Button>
               </div>
@@ -221,24 +221,24 @@ export default function DeliveryProfilePage() {
             Your account details and preferences
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <div className="sm:flex-1">
                 <p className="text-sm font-medium text-gray-500">Employee ID</p>
-                <p className="text-lg">{employee?.id}</p>
+                <p className="text-lg break-all">{employee?.id}</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <div className="sm:flex-1">
                 <p className="text-sm font-medium text-gray-500">Role</p>
                 <p className="text-lg">{employee?.role || 'Delivery'}</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <div className="sm:flex-1">
                 <p className="text-sm font-medium text-gray-500">Last Login</p>
                 <p className="text-lg">{employee?.lastLogin ? formatDate(employee.lastLogin) : 'Never'}</p>
               </div>
