@@ -4,6 +4,7 @@ import "./globals.css";
 import { UserAuthProvider } from "@/context/UserAuthContext";
 import { PerformanceProvider } from "@/components/providers/performance-provider";
 import { RouteLoadingIndicator } from "@/components/ui/route-loading";
+import { Suspense } from "react";
 
 // Optimize font loading
 const ubuntuSans = Ubuntu_Sans({
@@ -47,7 +48,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${ubuntuSans.className}`}>
-        <RouteLoadingIndicator />
+        <Suspense fallback={null}>
+          <RouteLoadingIndicator />
+        </Suspense>
         <PerformanceProvider>
           <UserAuthProvider>
             {children}

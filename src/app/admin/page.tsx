@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Header from "./components/common/Header";
 import { motion } from "framer-motion";
 import StatCard from "./components/common/StatCard";
@@ -8,7 +8,8 @@ import SalesChannelChart from "./components/overview/SalesChannelChart";
 import SalesOverviewChart from "./components/overview/SalesOverviewChart";
 import DeliveryStatusChart from "./components/overview/DeliveryStatusChart";
 
-function Admin() {
+// Main content component
+function AdminContent() {
   const [stats, setStats] = useState({
     totalRevenue: 0,
     deliveredOrders: 0,
@@ -81,6 +82,15 @@ function Admin() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Main page component wrapped with Suspense
+function Admin() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminContent />
+    </Suspense>
   );
 }
 

@@ -17,9 +17,21 @@ const generateStars = () => {
   }));
 };
 
+// Define the star type
+interface Star {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  delay: number;
+  vx: number;
+  vy: number;
+  opacity: number;
+}
+
 const ConstellationAnimation = () => {
   // Start with an empty array to avoid hydration mismatch
-  const [stars, setStars] = useState([]);
+  const [stars, setStars] = useState<Star[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   // Initialize stars only on the client side

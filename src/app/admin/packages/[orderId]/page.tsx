@@ -131,7 +131,7 @@ const OrderDetailPage = () => {
               <Truck className="w-5 h-5 mr-2 text-primary" />
               <span className="font-medium text-white">Барааны код:</span>{" "}
               <span className="ml-2 text-white bg-green-400 px-3 rounded-full">
-                {order.productId}
+                {order.packageId || "N/A"}
               </span>
             </p>
 

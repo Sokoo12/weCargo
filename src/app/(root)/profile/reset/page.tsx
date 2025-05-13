@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import ClearTokenButton from '../clearToken';
 import ResetButton from '../ResetButton';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { checkStoredUserValidity } from '@/utils/tokenReset';
 
-export default function ResetProfilePage() {
+function ResetProfileContent() {
   const [hasBadToken, setHasBadToken] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   
@@ -118,5 +118,23 @@ export default function ResetProfilePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ResetProfilePage() {
+  // Wrap the component with Suspense to handle useSearchParams
+  return (
+    <Suspense fallback={
+      <div className="max-w-md mx-auto py-10 px-4">
+        <Card>
+          <CardContent className="py-8 flex justify-center items-center">
+            <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+            <p>Бүртгэл шалгаж байна...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ResetProfileContent />
+    </Suspense>
   );
 } 

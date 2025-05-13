@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:force": "NEXT_DISABLE_ESLINT_DURING_BUILD=true NEXT_DISABLE_TYPECHECK_DURING_BUILD=true next build",
     "start": "next start",
     "clean": "rimraf .next",
     "lint": "next lint",

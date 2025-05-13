@@ -3,8 +3,9 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function Unauthorized() {
+function UnauthorizedContent() {
   const router = useRouter();
 
   return (
@@ -37,5 +38,13 @@ export default function Unauthorized() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function Unauthorized() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <UnauthorizedContent />
+    </Suspense>
   );
 } 

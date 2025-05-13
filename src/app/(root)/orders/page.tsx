@@ -2,7 +2,7 @@
 
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { Package, Search, Filter, X, Phone, Calendar, AlertCircle } from "lucide-react";
 
 interface OrderStatus {
@@ -42,7 +42,7 @@ const fetchWithoutOverride = async (url: string, options = {}) => {
   }
 };
 
-export default function Orders() {
+function OrdersContent() {
   const { user, isAuthenticated, isLoading } = useUserAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -548,5 +548,19 @@ export default function Orders() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Orders() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen pt-24 pb-10 px-4 max-w-7xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    }>
+      <OrdersContent />
+    </Suspense>
   );
 } 

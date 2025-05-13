@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,8 @@ const getDeliveryStatusColor = (status: DeliveryStatus): string => {
   }
 };
 
-export default function DeliveriesPage() {
+// Component code with all the UI
+function DeliveriesContent() {
   const router = useRouter();
   const [deliveries, setDeliveries] = useState<DeliveryRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +111,7 @@ export default function DeliveriesPage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState<string>("");
   const [scheduledDate, setScheduledDate] = useState<string>("");
-  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatus>("REQUESTED");
+  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatus>(DeliveryStatus.REQUESTED);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -379,5 +380,23 @@ export default function DeliveriesPage() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+// Main component with Suspense
+export default function DeliveriesPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-2">Хүргэлтийн мэдээлэл ачааллаж байна...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <DeliveriesContent />
+    </Suspense>
   );
 } 

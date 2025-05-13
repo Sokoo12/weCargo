@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Mail, AlertCircle, ArrowLeft, Send, CheckCircle } from "lucide-react";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -227,4 +227,19 @@ export default function ForgotPasswordPage() {
       </motion.div>
     </div>
   )
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4 relative">
+        <div className="animate-pulse text-center">
+          <div className="h-8 w-32 bg-gray-200 rounded mx-auto mb-4"></div>
+          <div className="h-4 w-48 bg-gray-200 rounded mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <ForgotPasswordContent />
+    </Suspense>
+  );
 }
