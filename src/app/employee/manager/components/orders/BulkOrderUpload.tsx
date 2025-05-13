@@ -176,7 +176,7 @@ const BulkOrderUpload = () => {
               const orderBody: OrderBody = {
                 orderId,
                 packageId,
-                phoneNumber: row.phoneNumber || undefined,
+                phoneNumber: row.phoneNumber ? String(row.phoneNumber) : undefined,
                 isShipped,
                 isDamaged: parseBoolean(row.isDamaged),
                 damageDescription: row.damageDescription || undefined,

@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         const orderCreateData: any = {
           orderId: String(orderData.orderId),
           packageId: String(orderData.packageId),
-          phoneNumber: orderData.phoneNumber,
+          phoneNumber: orderData.phoneNumber ? String(orderData.phoneNumber) : undefined,
           isShipped: orderData.isShipped,
           isDamaged: orderData.isDamaged || false,
           damageDescription: orderData.isDamaged ? orderData.damageDescription : undefined,
