@@ -5,6 +5,7 @@ import { UserAuthProvider } from "@/context/UserAuthContext";
 import { PerformanceProvider } from "@/components/providers/performance-provider";
 import { RouteLoadingIndicator } from "@/components/ui/route-loading";
 import { Suspense } from "react";
+import { EnsureDialogAccessibility } from "@/components/ui/ensure-dialog-accessibility";
 
 // Optimize font loading
 const ubuntuSans = Ubuntu_Sans({
@@ -56,6 +57,7 @@ export default function RootLayout({
             {children}
           </UserAuthProvider>
         </PerformanceProvider>
+        <EnsureDialogAccessibility />
       </body>
     </html>
   );

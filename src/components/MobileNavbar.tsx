@@ -176,11 +176,10 @@ function MobileNav() {
             ) : (
               <Link
                 href="/sign-in"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg  transition duration-200"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition duration-200"
               >
-                {/* Sign-in button for desktop header - Displayed when user is not authenticated */}
-                {/* <User size={18} /> */}
-                {/* <span className="font-medium">Нэвтрэх</span> */}
+                <User size={18} />
+                <span className="font-medium">Нэвтрэх</span>
               </Link>
             )}
           </nav>

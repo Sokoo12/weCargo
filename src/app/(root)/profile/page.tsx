@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { User, Phone, Mail, Calendar, Package, ArrowRight, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getAuthHeaders, getAuthToken } from '@/utils/auth-helpers';
 
 interface UserData {
   id: string;
@@ -39,6 +40,9 @@ export default function UserProfilePage() {
     name: '',
     email: '',
     phoneNumber: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
   const [hasInvalidIdError, setHasInvalidIdError] = useState(false);
   const router = useRouter();
@@ -80,7 +84,13 @@ export default function UserProfilePage() {
   const fetchUserData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/user/profile');
+      // Add a token debug button click before fetching
+      console.log("Fetching profile with headers:", getAuthHeaders());
+      
+      const response = await fetch('/api/user/profile', {
+        headers: getAuthHeaders()
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setUserData(data.user);
@@ -89,24 +99,47 @@ export default function UserProfilePage() {
           name: data.user.name || '',
           email: data.user.email || '',
           phoneNumber: data.user.phoneNumber || '',
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
         });
       } else {
-        const errorData = await response.json();
+        // Try to get the error details
+        let errorMessage = 'Unknown error';
+        let errorDetails = '';
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Unknown error';
+          errorDetails = JSON.stringify(errorData);
+        } catch (parseError) {
+          // If we can't parse the JSON, just use the status text
+          errorMessage = response.statusText || 'Error loading profile';
+          errorDetails = `Status code: ${response.status}`;
+        }
+        
+        console.error('Profile fetch error:', {
+          status: response.status,
+          message: errorMessage,
+          details: errorDetails
+        });
         
         // Check for invalid user ID format error
-        if (errorData.error && errorData.error.includes('Invalid user ID format')) {
-          console.error('Invalid user ID detected:', errorData.error);
+        if (errorMessage.includes('Invalid user ID format')) {
+          console.error('Invalid user ID detected:', errorMessage);
           clearInvalidAuthData();
         } else {
-          toast.error('Алдаа гарлаа', {
-            description: errorData.error || 'Профайл ачаалахад алдаа гарлаа.',
+          toast.error('Profiles алдаа гарлаа', {
+            description: `${errorMessage} (${response.status})`,
           });
         }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
       toast.error('Алдаа гарлаа', {
-        description: 'Таны профайлыг ачаалж чадсангүй.',
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : 'Таны профайлыг ачаалж чадсангүй.',
       });
     } finally {
       setLoading(false);
@@ -123,12 +156,24 @@ export default function UserProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate passwords if the user is trying to change them
+    if (formData.newPassword || formData.confirmPassword) {
+      if (formData.newPassword !== formData.confirmPassword) {
+        toast.error('Баталгаажуулах нууц үг таарахгүй байна');
+        return;
+      }
+      
+      if (!formData.currentPassword) {
+        toast.error('Одоогийн нууц үгээ оруулна уу');
+        return;
+      }
+    }
+    
     try {
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(formData),
       });
 
@@ -277,8 +322,47 @@ export default function UserProfilePage() {
                   id="phoneNumber"
                   name="phoneNumber"
                   value={formData.phoneNumber || ''}
-                  onChange={handleInputChange}
+                  disabled
+                  className="bg-gray-50"
                 />
+                <p className="text-xs text-gray-500">Утасны дугаар өөрчлөх боломжгүй</p>
+              </div>
+              
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-medium mb-4">Нууц үг өөрчлөх</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Одоогийн нууц үг</Label>
+                  <Input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    value={formData.currentPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Шинэ нууц үг</Label>
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    value={formData.newPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Шинэ нууц үг баталгаажуулах</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
               
               <div className="flex justify-end space-x-2 pt-4">
@@ -380,7 +464,7 @@ export default function UserProfilePage() {
             </Card>
           </div>
           
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col space-y-2">
             <Link href="/orders">
               <Button className="w-full">
                 <span>Захиалгууд харах</span>

@@ -70,7 +70,8 @@ const isValidObjectId = (id: string): boolean => {
   if (!id) return false;
   
   try {
-    return ObjectId.isValid(id) && new ObjectId(id).toString() === id;
+    // First attempt the simple check
+    return ObjectId.isValid(id);
   } catch (error) {
     console.error("Error validating ObjectId:", error);
     return false;
@@ -119,95 +120,117 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get user data
-    console.log("Fetching user with ID:", userId);
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        createdAt: true
+    try {
+      // Get user data
+      console.log("Fetching user with ID:", userId);
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phoneNumber: true,
+          createdAt: true
+        }
+      });
+      
+      if (!user) {
+        console.log("User not found in database with ID:", userId);
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        );
       }
-    });
-    
-    if (!user) {
-      console.log("User not found in database");
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-    
-    console.log("User found:", user.name, user.email);
-    
-    // If user has a phone number, get their order stats
-    let orderStats = {
-      totalOrders: 0,
-      pendingOrders: 0,
-      inTransitOrders: 0,
-      deliveredOrders: 0
-    };
-    
-    if (user.phoneNumber) {
-      console.log("Fetching order stats for phone:", user.phoneNumber);
-      // Get total count of user's orders
-      const totalOrders = await db.order.count({
-        where: { phoneNumber: user.phoneNumber }
-      });
       
-      // Get count of warehouse orders
-      const pendingOrders = await db.order.count({
-        where: { 
-          phoneNumber: user.phoneNumber,
-          OR: [
-            { status: 'IN_WAREHOUSE' },
-            { status: 'PENDING' as any }
-          ]
-        }
-      });
+      console.log("User found:", user.name, user.email);
       
-      // Get count of in transit orders
-      const inTransitOrders = await db.order.count({
-        where: { 
-          phoneNumber: user.phoneNumber,
-          OR: [
-            { status: 'IN_TRANSIT' },
-            { status: 'IN_UB' },
-            { status: 'OUT_FOR_DELIVERY' }
-          ]
-        }
-      });
-      
-      // Get count of delivered orders
-      const deliveredOrders = await db.order.count({
-        where: { 
-          phoneNumber: user.phoneNumber,
-          status: 'DELIVERED' 
-        }
-      });
-      
-      orderStats = {
-        totalOrders,
-        pendingOrders,
-        inTransitOrders,
-        deliveredOrders
+      // If user has a phone number, get their order stats
+      let orderStats = {
+        totalOrders: 0,
+        pendingOrders: 0,
+        inTransitOrders: 0,
+        deliveredOrders: 0
       };
       
-      console.log("Order stats:", orderStats);
-    } else {
-      console.log("User has no phone number, skipping order stats");
+      try {
+        if (user.phoneNumber) {
+          console.log("Fetching order stats for phone:", user.phoneNumber);
+          
+          // Using Prisma directly for simplicity
+          // Get all orders for this phone number first
+          const allOrders = await db.order.findMany({
+            where: {
+              phoneNumber: user.phoneNumber
+            },
+            select: {
+              id: true,
+              status: true
+            }
+          });
+          
+          console.log(`Found ${allOrders.length} orders for user`);
+          
+          // Count them manually for more reliable results
+          const totalOrders = allOrders.length;
+          
+          // Count orders by status
+          let pendingCount = 0;
+          let transitCount = 0;
+          let deliveredCount = 0;
+          
+          for (const order of allOrders) {
+            const status = order.status;
+            
+            // Handle null status safely
+            if (!status) continue;
+            
+            // Use string comparison for safety
+            if (status === 'IN_WAREHOUSE' || status.toString() === 'PENDING') {
+              pendingCount++;
+            } else if (['IN_TRANSIT', 'IN_UB', 'OUT_FOR_DELIVERY'].includes(status)) {
+              transitCount++;
+            } else if (status === 'DELIVERED') {
+              deliveredCount++;
+            }
+          }
+          
+          orderStats = {
+            totalOrders,
+            pendingOrders: pendingCount,
+            inTransitOrders: transitCount,
+            deliveredOrders: deliveredCount
+          };
+          
+          console.log("Order stats:", orderStats);
+        } else {
+          console.log("User has no phone number, skipping order stats");
+        }
+      } catch (orderStatsError) {
+        console.error("Error fetching order stats:", orderStatsError);
+        // Continue with empty stats rather than failing
+      }
+      
+      return NextResponse.json({
+        user,
+        orderStats
+      });
+    } catch (dbError) {
+      console.error("Database error during profile fetch:", dbError);
+      return NextResponse.json(
+        { 
+          error: 'Database error fetching user profile',
+          details: dbError instanceof Error ? dbError.message : "Unknown database error"
+        },
+        { status: 500 }
+      );
     }
-    
-    return NextResponse.json({
-      user,
-      orderStats
-    });
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch user profile' },
+      { 
+        error: 'Failed to fetch user profile',
+        details: error instanceof Error ? error.message : "Unknown error" 
+      },
       { status: 500 }
     );
   }

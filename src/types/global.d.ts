@@ -99,3 +99,7 @@ type ClerkUser = {
   createdAt: number;
   lastActiveAt:number | null
 };
+
+interface Window {
+  originalFetch: typeof fetch;
+}

@@ -2,6 +2,11 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
+// Store original fetch globally to prevent losing reference
+if (typeof window !== 'undefined' && !window.originalFetch) {
+  window.originalFetch = window.fetch;
+}
+
 interface User {
   id: string;
   name: string;
@@ -71,23 +76,29 @@ export function UserAuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     
     const token = localStorage.getItem("userToken");
-    if (!user || !token) return;
+    if (!token) return;
     
-    const originalFetch = window.fetch;
+    // Make sure original fetch is preserved
+    const originalFetch = window.originalFetch || window.fetch;
     
     window.fetch = function(input, init = {}) {
-      // Add auth headers to all requests
-      const headers = new Headers(init.headers || {});
-      headers.set('Authorization', `Bearer ${token}`);
+      // Create a new init object to avoid modifying the original
+      const newInit = { ...init };
       
-      return originalFetch(input, {
-        ...init,
-        headers
-      });
+      // Create headers object if it doesn't exist
+      newInit.headers = new Headers(newInit.headers || {});
+      
+      // Add Authorization header
+      if (token) {
+        (newInit.headers as Headers).set('Authorization', `Bearer ${token}`);
+      }
+      
+      // Call original fetch with new init object
+      return originalFetch(input, newInit);
     };
     
     return () => {
-      // Restore original fetch when component unmounts or auth changes
+      // Restore original fetch when component unmounts
       window.fetch = originalFetch;
     };
   }, [user]);

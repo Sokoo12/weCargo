@@ -156,6 +156,12 @@ export default function SignInPage() {
                     <span>🔒</span>
                   </div>
                 </div>
+                
+                <div className="text-right">
+                  <Link href="/reset-password" className="text-sm text-primary hover:text-primary/70">
+                    Нууц үгээ мартсан?
+                  </Link>
+                </div>
               </div>
 
               <Button

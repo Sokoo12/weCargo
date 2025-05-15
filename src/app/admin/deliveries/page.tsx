@@ -42,6 +42,7 @@ import { DeliveryStatus, OrderStatus } from "@/types/enums";
 import { translateStatus } from "@/utils/translateStatus";
 import { Truck, Calendar, Phone, MapPin, DollarSign, Loader2, Package } from "lucide-react";
 import moment from "moment";
+import { AccessibleDialogContent } from "@/components/ui/accessible-dialog";
 
 // Type definition for delivery request with related order info
 interface DeliveryRequest {

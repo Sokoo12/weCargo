@@ -37,4 +37,37 @@ export function AccessibleDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+/**
+ * HiddenDialogTitle - A component that visually hides the DialogTitle while keeping it accessible
+ * Use this when you need to add a DialogTitle for accessibility but don't want it visible.
+ */
+export function HiddenDialogTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <VisuallyHidden>
+      <DialogTitle>{children}</DialogTitle>
+    </VisuallyHidden>
+  )
+}
+
+/**
+ * AccessibleDialogContent - A component that wraps DialogContent with a hidden DialogTitle
+ * This ensures accessibility requirements are met without changing the visual design.
+ */
+export function AccessibleDialogContent({
+  children,
+  title,
+  className
+}: {
+  children: React.ReactNode
+  title: string
+  className?: string
+}) {
+  return (
+    <DialogContent className={className}>
+      <HiddenDialogTitle>{title}</HiddenDialogTitle>
+      {children}
+    </DialogContent>
+  )
 } 
